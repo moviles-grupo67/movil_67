@@ -10,5 +10,5 @@ export default function ReservasScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  title: { fontSize: 20, fontWeight: 'bold' },
+  title: { fontSize: 20, fontFamily: 'Inter-Medium' },
 });

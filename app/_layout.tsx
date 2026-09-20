@@ -14,7 +14,6 @@ export {
 } from 'expo-router';
 
 export const unstable_settings = {
-  // Ensure that reloading on `/modal` keeps a back button present.
   initialRouteName: '(tabs)',
 };
 
@@ -23,7 +22,8 @@ SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
+     'Inter-Regular': require('../assets/fonts/Inter18pt-Regular.ttf'),
+     'Inter-Medium': require('../assets/fonts/Inter18pt-Medium.ttf'),
     ...FontAwesome.font,
   });
 
