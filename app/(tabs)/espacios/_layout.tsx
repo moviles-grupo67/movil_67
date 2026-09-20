@@ -1,17 +1,13 @@
 import { Stack } from 'expo-router';
-import Colors from '@/constants/Colors';
-import { useColorScheme } from '@/components/useColorScheme';
+import { useHeader } from '@/components/useHeader';
 
 export default function EspaciosLayout() {
-  const colorScheme = useColorScheme();
+  const header = useHeader();
 
   return (
-    <Stack
-      screenOptions={{
-        headerStyle: { backgroundColor: Colors[colorScheme ?? 'light'].tint },
-        headerTintColor: '#FFFFFF',
-      }}>
+    <Stack screenOptions={header}>
       <Stack.Screen name="index" options={{ title: 'Espacios' }} />
     </Stack>
   );
 }
+

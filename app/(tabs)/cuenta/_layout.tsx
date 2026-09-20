@@ -1,14 +1,9 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { Stack } from 'expo-router';
 
-export default function ReservasScreen() {
+export default function CuentaLayout() {
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Mis reservas</Text>
-    </View>
+    <Stack>
+      <Stack.Screen name="index" options={{ title: 'Cuenta' }} />
+    </Stack>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  title: { fontSize: 20, fontWeight: 'bold' },
-});
