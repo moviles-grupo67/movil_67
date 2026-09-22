@@ -1,0 +1,13 @@
+import { Stack } from 'expo-router';
+import { useHeader } from '@/components/useHeader';
+
+export default function EspaciosLayout() {
+  const header = useHeader();
+
+  return (
+    <Stack screenOptions={header}>
+      <Stack.Screen name="index" options={{ title: 'Espacios' }} />
+    </Stack>
+  );
+}
+
