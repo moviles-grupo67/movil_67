@@ -1,15 +1,24 @@
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import QRCode from 'react-native-qrcode-svg';
-import { reservas } from '@/src/mocks/reservas';
 import { espacios } from '@/src/mocks/espacios';
 import { useRouter } from 'expo-router';
 import { cancelarReserva } from '@/src/servicios/reservas';
+import { obtenerReservas } from '@/src/servicios/reservas';
+import { useEffect, useState } from 'react';
+import { Reserva } from '@/src/tipos/reserva';
 
 export default function DetalleReserva() {
     const { id } = useLocalSearchParams();
-    const reserva = reservas.find((r) => r.id === id);
     const espacio = espacios.find((e) => e.id === reserva?.espacioId);
+
+    const [reserva, setReserva] = useState<Reserva | undefined>(undefined);
+
+    useEffect(() => {
+    obtenerReservas().then((todas) => {
+        setReserva(todas.find((r) => r.id === id));
+    });
+    }, [id]);
 
     const router = useRouter();
 
@@ -35,14 +44,13 @@ export default function DetalleReserva() {
                 {espacio?.precioPorHora} - se paga en el lugar
             </Text>
 
-            <View
-                style={styles.qrContainer}
-            >
-                <QRCode 
-                    value={reserva?.codigoQr ?? ''}
-                    size={200}
-                />
-            </View>
+            {reserva && (
+                <View 
+                    style={styles.qrContainer}
+                >
+                    <QRCode value={reserva.codigoQr} size={200} />
+                </View>
+            )}
 
             <Text
                 style={styles.codigo}
