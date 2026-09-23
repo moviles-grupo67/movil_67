@@ -1,8 +1,19 @@
 import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { useState } from 'react';
-import { reservas } from '@/src/mocks/reservas';
+import { useState, useCallback } from 'react';
+import { obtenerReservas } from '@/src/servicios/reservas';
+import { espacios } from '@/src/mocks/espacios';
+import { Link, useFocusEffect } from 'expo-router';
+import { Reserva } from '@/src/tipos/reserva';
 
 export default function ReservasScreen() {
+
+  const [reservas, setReservas] = useState<Reserva[]>([]);
+
+  useFocusEffect(
+    useCallback(() => {
+      obtenerReservas().then(setReservas);
+    }, [])
+  );
 
   const [pestaña, setPestaña] = useState<'próximas' | 'pasadas'>('próximas');
   const reservasFiltradas = reservas.filter((r) => pestaña === 'próximas' ? r.estado === 'confirmada' : r.estado !== 'confirmada')
@@ -31,12 +42,18 @@ export default function ReservasScreen() {
           </Text>
         </Pressable>
       </View>
-      {reservasFiltradas.map((reserva) => (
-        <View key={reserva.id} style={styles.card}>
-          <Text style={styles.cardTitulo}>{reserva.espacioId}</Text>
-          <Text>{reserva.estado}</Text>
-        </View>
-      ))}
+      {reservasFiltradas.map((reserva) => {
+        const espacio = espacios.find((e) => e.id === reserva.espacioId);
+        return (
+          <View key={reserva.id} style={styles.card}>
+            <Text style={styles.cardTitulo}>{espacio?.nombre}</Text>
+            <Text>{reserva.estado}</Text>
+            <Link href={{ pathname: '/reservas/[id]', params: { id: reserva.id } }}>
+              <Text style={{ color: '#A4438C', fontWeight: 'bold', marginTop: 8 }}>Ver código QR</Text>
+            </Link>
+          </View>
+        );
+      })}
     </View>
   );
 }
