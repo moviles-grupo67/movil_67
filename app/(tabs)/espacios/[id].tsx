@@ -22,12 +22,26 @@ export default function DetalleEspacio() {
 
   async function handleReservar() {
     if (!turnoSeleccionado || !espacio) return;
-    const reserva = await crearReserva({
-      espacioId: espacio.id,
-      turnoId: turnoSeleccionado,
-      cantidadPersonas: 1,
-    });
-    router.push({ pathname: '/reservas/[id]', params: { id: reserva.id } });
+
+    try {
+
+      const reserva = await crearReserva({
+        espacioId: espacio.id,
+        turnoId: turnoSeleccionado,
+        cantidadPersonas: 1,
+      });
+      router.replace('/espacios');
+      router.push('/reservas');
+      router.push({ pathname: '/reservas/[id]', params: { id: reserva.id } });
+      
+    } catch (err) {
+
+      if (err instanceof Error) {
+        alert(err.message);
+      }
+
+    }
+  
   }
 
   return (

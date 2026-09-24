@@ -18,6 +18,15 @@ export async function crearReserva(datos: {
     turnoId: string;
     cantidadPersonas: number
 }): Promise<Reserva> {
+
+    const activas = reservas.filter(
+        (r) => r.usuarioId === 'usr-207' && r.estado === 'confirmada'
+    );
+
+    if (activas.length >= 3) {
+        throw new Error('Ya tenés 3 reservas activas. Cancelá alguna para reservar otra.');
+    }
+
     const nueva: Reserva = {
         id: `res-${Date.now()}`,
         turnoId: datos.turnoId,
