@@ -8,6 +8,7 @@ export default function ReservasLayout() {
   return (
     <Stack screenOptions={header}>
       <Stack.Screen name="index" options={{ title: 'Mis reservas' }} />
+      <Stack.Screen name="[id]" options={{ title: 'Mi reserva' }} />
     </Stack>
   );
 }
