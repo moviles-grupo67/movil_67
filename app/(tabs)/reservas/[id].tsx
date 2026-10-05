@@ -18,13 +18,22 @@ export default function DetalleReserva() {
     }, [id]);
 
     const espacio = espacios.find((e) => e.id === reserva?.espacioId);
+    const hasta = reserva ? new Date(reserva.cancelableHasta) : null;
+    const horaLimite = hasta?.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+    const sePuedeCancelar = hasta ? new Date() <= hasta : false;
 
     const router = useRouter();
 
     async function handleCancelar() {
         if (!reserva) return;
-        await cancelarReserva(reserva.id);
-        router.back();
+        try {
+            await cancelarReserva(reserva.id);
+            router.back();
+        } catch (err) {
+            if (err instanceof Error) {
+                alert(err.message);
+            }
+        }
     }
 
     return (
@@ -40,7 +49,7 @@ export default function DetalleReserva() {
                 {espacio?.complejo}
             </Text>
             <Text>
-                {espacio?.precioPorHora} - se paga en el lugar
+                $ {espacio?.precioPorHora.toLocaleString('es-AR')} - se paga en el lugar
             </Text>
 
             {reserva && (
@@ -61,9 +70,20 @@ export default function DetalleReserva() {
             >
                 Mostráselo al encargado
             </Text>
-            <Pressable style={styles.botonCancelar} onPress={handleCancelar}>
+            <Pressable
+                style={[styles.botonCancelar, !sePuedeCancelar && styles.botonDeshabilitado]}
+                onPress={handleCancelar}
+                disabled={!sePuedeCancelar}
+            >
                 <Text style={{ color: '#fff', fontWeight: 'bold' }}>Cancelar reserva</Text>
             </Pressable>
+            {reserva && (
+                <Text style={styles.ayuda}>
+                    {sePuedeCancelar
+                        ? `Se puede cancelar sin aviso hasta las ${horaLimite} de hoy`
+                        : 'Para cancelar, avisá a la Dirección de Deportes'}
+                </Text>
+            )}
         </View>
     )
 }
@@ -75,4 +95,5 @@ const styles = StyleSheet.create({
     codigo: { fontWeight: 'bold', letterSpacing: 1 },
     ayuda: { color: '#999', marginTop: 4 },
     botonCancelar: { backgroundColor: '#B71C1C', padding: 14, borderRadius: 8, marginTop: 24, width: '100%', alignItems: 'center' },
+    botonDeshabilitado: { backgroundColor: '#BDBDBD' },
 })

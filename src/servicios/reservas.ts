@@ -18,8 +18,17 @@ export async function obtenerTurnosOcupados(espacioId: string): Promise<string[]
 }
 
 export async function cancelarReserva(id: string): Promise<void> {
-    reservas = reservas.map((r) => 
-        r.id === id ? {...r, estado: 'cancelada' } : r
+    const reserva = reservas.find((r) => r.id === id);
+    if (!reserva) {
+        throw new Error('No encontramos esa reserva.');
+    }
+
+    if (new Date() > new Date(reserva.cancelableHasta)) {
+        throw new Error('Faltan menos de 4 horas para el turno. Para cancelar, avisá a la Dirección de Deportes.');
+    }
+
+    reservas = reservas.map((r) =>
+        r.id === id ? { ...r, estado: 'cancelada' } : r
     );
 }
 
@@ -38,6 +47,14 @@ export async function crearReserva(datos: {
         throw new Error('Ya tenés 3 reservas activas. Cancelá alguna para reservar otra.');
     }
 
+    //La cancelacion de la reserva siempre se hace desde hoy porque aun no agregamos nada de fechas
+    const [hora] = datos.turnoId.split(':');
+    const inicioTurno = new Date();
+    inicioTurno.setHours(Number(hora), 0, 0, 0);
+
+    const cuatroHoras = 1000 * 60 * 60 * 4;
+    const cancelableHasta = new Date(inicioTurno.getTime() - cuatroHoras);
+
     const nueva: Reserva = {
         id: `res-${Date.now()}`,
         turnoId: datos.turnoId,
@@ -48,7 +65,7 @@ export async function crearReserva(datos: {
         estado: 'confirmada',
         ingresoEn: null,
         creadaEn: new Date().toISOString(),
-        cancelableHasta: new Date(Date.now() + 1000 * 60 * 60 * 4).toISOString(),
+        cancelableHasta: cancelableHasta.toISOString(),
     };
     reservas = [...reservas, nueva];
     return nueva;

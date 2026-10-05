@@ -3,7 +3,7 @@ import { espacios } from '@/src/mocks/espacios';
 import { crearReserva, obtenerTurnosOcupados } from '@/src/servicios/reservas';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { useState, useCallback } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, Alert, View } from 'react-native';
 
 
 function generarTurnos() {
@@ -33,20 +33,12 @@ export default function DetalleEspacio() {
   );
   const [turnoSeleccionado, setTurnoSeleccionado] = useState<string | null>(null);
 
-  async function handleReservar() {
-    if (!turnoSeleccionado || !espacio) return;
-
-    if (!sesion) {
-      router.push('/ingreso');
-      return;
-    }
-
+  async function confirmarReserva(usuarioId: string, espacioId: string, turnoId: string) {
     try {
-
       const reserva = await crearReserva({
-        espacioId: espacio.id,
-        turnoId: turnoSeleccionado,
-        usuarioId: sesion.usuario.id,
+        espacioId,
+        turnoId,
+        usuarioId,
         cantidadPersonas: 1,
       });
       router.replace('/espacios');
@@ -54,15 +46,44 @@ export default function DetalleEspacio() {
         { pathname: '/reservas/[id]', params: { id: reserva.id } },
         { withAnchor: true }
       );
-
     } catch (err) {
-
       if (err instanceof Error) {
         alert(err.message);
       }
+    }
+  }
 
+  function handleReservar() {
+    if (!turnoSeleccionado || !espacio) return;
+
+    if (!sesion) {
+      router.push('/ingreso');
+      return;
     }
 
+    const usuarioId = sesion.usuario.id;
+    const espacioId = espacio.id;
+    const turnoId = turnoSeleccionado;
+
+    const [hora] = turnoId.split(':');
+    const inicioTurno = new Date();
+    inicioTurno.setHours(Number(hora), 0, 0, 0);
+    const cuatroHoras = 1000 * 60 * 60 * 4;
+    const faltan = inicioTurno.getTime() - Date.now();
+
+    if (faltan < cuatroHoras) {
+      Alert.alert(
+        'Este turno no se podrá cancelar',
+        'Faltan menos de 4 horas. Si después no podés ir, vas a tener que avisar a la Dirección de Deportes.',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Continuar', onPress: () => confirmarReserva(usuarioId, espacioId, turnoId) },
+        ]
+      );
+      return;
+    }
+
+    confirmarReserva(usuarioId, espacioId, turnoId);
   }
 
   return (
