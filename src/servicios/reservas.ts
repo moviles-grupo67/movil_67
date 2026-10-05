@@ -1,10 +1,20 @@
-import { Reserva } from '@/src/tipos/reserva';
 import { reservas as reservasMock } from '@/src/mocks/reservas';
+import { Reserva } from '@/src/tipos/reserva';
 
 let reservas: Reserva[] = [...reservasMock];
 
-export async function obtenerReservas(): Promise<Reserva[]> {
-    return reservas;
+export async function obtenerReservas(usuarioId: string): Promise<Reserva[]> {
+    return reservas.filter((r) => r.usuarioId === usuarioId);
+}
+
+export async function obtenerReservaPorId(id: string): Promise<Reserva | undefined> {
+    return reservas.find((r) => r.id === id);
+}
+
+export async function obtenerTurnosOcupados(espacioId: string): Promise<string[]> {
+    return reservas
+        .filter((r) => r.espacioId === espacioId && r.estado === 'confirmada')
+        .map((r) => r.turnoId);
 }
 
 export async function cancelarReserva(id: string): Promise<void> {
@@ -16,11 +26,12 @@ export async function cancelarReserva(id: string): Promise<void> {
 export async function crearReserva(datos: {
     espacioId: string;
     turnoId: string;
+    usuarioId: string;
     cantidadPersonas: number
 }): Promise<Reserva> {
 
     const activas = reservas.filter(
-        (r) => r.usuarioId === 'usr-207' && r.estado === 'confirmada'
+        (r) => r.usuarioId === datos.usuarioId && r.estado === 'confirmada'
     );
 
     if (activas.length >= 3) {
@@ -31,7 +42,7 @@ export async function crearReserva(datos: {
         id: `res-${Date.now()}`,
         turnoId: datos.turnoId,
         espacioId: datos.espacioId,
-        usuarioId: 'usr-207',
+        usuarioId: datos.usuarioId,
         cantidadPersonas: datos.cantidadPersonas,
         codigoQr: `QR-${Date.now()}`,
         estado: 'confirmada',

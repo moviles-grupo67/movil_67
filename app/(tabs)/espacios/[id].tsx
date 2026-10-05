@@ -1,8 +1,10 @@
-import { useState } from 'react';
-import { ScrollView, Pressable, View, Text, StyleSheet } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useAuth } from '@/contexts/auth-context';
 import { espacios } from '@/src/mocks/espacios';
-import { crearReserva } from '@/src/servicios/reservas';
+import { crearReserva, obtenerTurnosOcupados } from '@/src/servicios/reservas';
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
+import { useState, useCallback } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
+
 
 function generarTurnos() {
   const turnos = [];
@@ -16,24 +18,43 @@ function generarTurnos() {
 export default function DetalleEspacio() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
+  const { sesion } = useAuth();
   const espacio = espacios.find((e) => e.id === id);
-  const turnos = generarTurnos();
+  const [ocupados, setOcupados] = useState<string[]>([]);
+
+  useFocusEffect(
+    useCallback(() => {
+      obtenerTurnosOcupados(String(id)).then(setOcupados);
+    }, [id])
+  );
+
+  const turnos = generarTurnos().map((t) =>
+    ocupados.includes(t.inicio) ? { ...t, estado: 'ocupado' } : t
+  );
   const [turnoSeleccionado, setTurnoSeleccionado] = useState<string | null>(null);
 
   async function handleReservar() {
     if (!turnoSeleccionado || !espacio) return;
+
+    if (!sesion) {
+      router.push('/ingreso');
+      return;
+    }
 
     try {
 
       const reserva = await crearReserva({
         espacioId: espacio.id,
         turnoId: turnoSeleccionado,
+        usuarioId: sesion.usuario.id,
         cantidadPersonas: 1,
       });
       router.replace('/espacios');
-      router.push('/reservas');
-      router.push({ pathname: '/reservas/[id]', params: { id: reserva.id } });
-      
+      router.push(
+        { pathname: '/reservas/[id]', params: { id: reserva.id } },
+        { withAnchor: true }
+      );
+
     } catch (err) {
 
       if (err instanceof Error) {
@@ -41,7 +62,7 @@ export default function DetalleEspacio() {
       }
 
     }
-  
+
   }
 
   return (

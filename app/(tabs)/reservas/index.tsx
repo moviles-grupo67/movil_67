@@ -4,15 +4,21 @@ import { obtenerReservas } from '@/src/servicios/reservas';
 import { espacios } from '@/src/mocks/espacios';
 import { Link, useFocusEffect } from 'expo-router';
 import { Reserva } from '@/src/tipos/reserva';
+import { useAuth } from '@/contexts/auth-context';
 
 export default function ReservasScreen() {
 
   const [reservas, setReservas] = useState<Reserva[]>([]);
+  const { sesion } = useAuth();
 
   useFocusEffect(
     useCallback(() => {
-      obtenerReservas().then(setReservas);
-    }, [])
+      if (!sesion) {
+        setReservas([]);
+        return;
+      }
+      obtenerReservas(sesion.usuario.id).then(setReservas);
+    }, [sesion])
   );
 
   const [pestaña, setPestaña] = useState<'próximas' | 'pasadas'>('próximas');
@@ -61,9 +67,9 @@ export default function ReservasScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20 },
   title: { fontSize: 20, fontFamily: 'Inter-Medium' },
-  tabs: { flexDirection: 'row', gap: 20, marginBottom: 16}, 
-  tab: { fontSize: 16, fontWeight: 'bold', color: '#A4438C'},
-  tabActivo: { fontSize: 16, fontWeight: 'bold', color: '#A4438C'},
+  tabs: { flexDirection: 'row', gap: 20, marginBottom: 16 },
+  tab: { fontSize: 16, fontWeight: 'bold', color: '#A4438C' },
+  tabActivo: { fontSize: 16, fontWeight: 'bold', color: '#A4438C' },
   card: { backgroundColor: '#F8F3F6', padding: 14, borderRadius: 10, marginBottom: 10 },
   cardTitulo: { fontWeight: 'bold', fontSize: 16 },
 });
