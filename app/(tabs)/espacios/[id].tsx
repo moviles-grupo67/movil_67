@@ -2,12 +2,14 @@ import { useAuth } from '@/contexts/auth-context';
 import { Icono } from '@/components/Icono';
 import { espacios } from '@/src/mocks/espacios';
 import { crearReserva, obtenerTurnosOcupados } from '@/src/servicios/reservas';
-import { crearTurnoId, inicioDeTurno, CUATRO_HORAS } from '@/src/utils/turnos';
+import { crearTurnoId, inicioDeTurno, textoTurno, CUATRO_HORAS } from '@/src/utils/turnos';
+import { vibrarExito, vibrarError, vibrarToque } from '@/src/servicios/vibracion';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { useState, useCallback } from 'react';
 import { Pressable, FlatList, StyleSheet, Text, Alert, View } from 'react-native';
+import { Boton } from '@/components/Boton';
 
-// TODO: grilla temporal para probar reservas. La reemplaza el compañero de Espacios.
+// Zequi, vos podes checkear esto y modificarlo a tu gusto, es tu parte :) 
 
 const DIAS_VISIBLES = 7;
 
@@ -53,8 +55,8 @@ export default function DetalleEspacio() {
   const ahora = Date.now();
   const turnos = espacio
     ? generarTurnos(espacio.id, fecha)
-        .filter((t) => inicioDeTurno(t.id).getTime() > ahora)
-        .map((t) => (ocupados.includes(t.id) ? { ...t, estado: 'ocupado' as const } : t))
+      .filter((t) => inicioDeTurno(t.id).getTime() > ahora)
+      .map((t) => (ocupados.includes(t.id) ? { ...t, estado: 'ocupado' as const } : t))
     : [];
 
   function cambiarDia(delta: number) {
@@ -65,12 +67,14 @@ export default function DetalleEspacio() {
   async function confirmarReserva(usuarioId: string, espacioId: string, turnoId: string) {
     try {
       const reserva = await crearReserva({ espacioId, turnoId, usuarioId, cantidadPersonas: 1 });
+      vibrarExito();
       router.back();
       router.push(
         { pathname: '/reservas/[id]', params: { id: reserva.id } },
         { withAnchor: true }
       );
     } catch (err) {
+      vibrarError();
       if (err instanceof Error) {
         alert(err.message);
       }
@@ -81,7 +85,10 @@ export default function DetalleEspacio() {
     if (!turnoSeleccionado || !espacio) return;
 
     if (!sesion) {
-      router.push('/ingreso');
+      router.push({
+        pathname: '/ingreso',
+        params: { resumen: `${espacio.nombre} · ${textoTurno(turnoSeleccionado)}` },
+      });
       return;
     }
 
@@ -137,7 +144,10 @@ export default function DetalleEspacio() {
       renderItem={({ item: turno }) => (
         <Pressable
           disabled={turno.estado !== 'libre'}
-          onPress={() => setTurnoSeleccionado(turno.id)}
+          onPress={() => {
+            vibrarToque();
+            setTurnoSeleccionado(turno.id);
+          }}
           style={[
             styles.turno,
             { backgroundColor: turno.estado === 'libre' ? '#C8E6C9' : '#EF9A9A' },
@@ -153,11 +163,12 @@ export default function DetalleEspacio() {
       }
       ListFooterComponent={
         turnoSeleccionado ? (
-          <Pressable style={styles.boton} onPress={handleReservar}>
-            <Text style={styles.textoBoton}>
-              Confirmar reserva de las {dosDigitos(inicioDeTurno(turnoSeleccionado).getHours())}:00 hs
-            </Text>
-          </Pressable>
+          <View style={{ marginTop: 16 }}>
+            <Boton
+              titulo={`Confirmar reserva de las ${dosDigitos(inicioDeTurno(turnoSeleccionado).getHours())}:00 hs`}
+              onPress={handleReservar}
+            />
+          </View>
         ) : null
       }
     />

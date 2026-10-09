@@ -8,6 +8,8 @@ import { obtenerReservaPorId } from '@/src/servicios/reservas';
 import { useEffect, useState } from 'react';
 import { Reserva } from '@/src/tipos/reserva';
 import { textoTurno, textoHora, textoDia } from '@/src/utils/turnos';
+import { vibrarExito, vibrarError } from '@/src/servicios/vibracion';
+import { Boton } from '@/components/Boton';
 
 export default function DetalleReserva() {
     const { id } = useLocalSearchParams();
@@ -32,8 +34,10 @@ export default function DetalleReserva() {
         if (!reserva) return;
         try {
             await cancelarReserva(reserva.id);
+            vibrarExito();
             router.back();
         } catch (err) {
+            vibrarError();
             if (err instanceof Error) {
                 alert(err.message);
             }
@@ -77,13 +81,14 @@ export default function DetalleReserva() {
             >
                 Mostráselo al encargado
             </Text>
-            <Pressable
-                style={[styles.botonCancelar, !sePuedeCancelar && styles.botonDeshabilitado]}
-                onPress={handleCancelar}
-                disabled={!sePuedeCancelar}
-            >
-                <Text style={{ color: '#fff', fontWeight: 'bold' }}>Cancelar reserva</Text>
-            </Pressable>
+            <View style={styles.contenedorBoton}>
+                <Boton
+                    titulo="Cancelar reserva"
+                    variante="peligro"
+                    onPress={handleCancelar}
+                    deshabilitado={!sePuedeCancelar}
+                />
+            </View>
             {reserva && (
                 <Text style={styles.ayuda}>
                     {sePuedeCancelar
@@ -101,7 +106,6 @@ const styles = StyleSheet.create({
     qrContainer: { backgroundColor: '#fff', padding: 20, borderRadius: 12, marginVertical: 24 },
     codigo: { fontWeight: 'bold', letterSpacing: 1 },
     ayuda: { color: '#999', marginTop: 4 },
-    botonCancelar: { backgroundColor: '#B71C1C', padding: 14, borderRadius: 8, marginTop: 24, width: '100%', alignItems: 'center' },
-    botonDeshabilitado: { backgroundColor: '#BDBDBD' },
+    contenedorBoton: { alignSelf: 'stretch', marginTop: 24 },
     fecha: { fontSize: 16, fontWeight: 'bold', color: '#A4438C', marginBottom: 4 },
 })

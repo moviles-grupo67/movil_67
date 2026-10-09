@@ -10,6 +10,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { textoTurno } from '@/src/utils/turnos';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
+import { Boton } from '@/components/Boton';
 
 const ANCHO_OPCION = 100;
 const NOMBRE_ESTADO = {
@@ -94,9 +95,7 @@ export default function ReservasScreen() {
         ListEmptyComponent={
           <View style={styles.vacio}>
             <Text style={styles.textoVacio}>No hay reservas</Text>
-            <Pressable style={styles.botonVacio} onPress={() => router.navigate('/espacios')}>
-              <Text style={styles.textoBotonVacio}>¡Reservá tu espacio ya!</Text>
-            </Pressable>
+            <Boton titulo="¡Reservá tu cancha ya!" onPress={() => router.navigate('/espacios')} />
           </View>
         }
       />
