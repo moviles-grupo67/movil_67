@@ -1,5 +1,6 @@
 import { reservas as reservasMock } from '@/src/mocks/reservas';
 import { Reserva } from '@/src/tipos/reserva';
+import { inicioDeTurno, CUATRO_HORAS } from '@/src/utils/turnos';
 
 let reservas: Reserva[] = [...reservasMock];
 
@@ -47,13 +48,13 @@ export async function crearReserva(datos: {
         throw new Error('Ya tenés 3 reservas activas. Cancelá alguna para reservar otra.');
     }
 
-    //La cancelacion de la reserva siempre se hace desde hoy porque aun no agregamos nada de fechas
-    const [hora] = datos.turnoId.split(':');
-    const inicioTurno = new Date();
-    inicioTurno.setHours(Number(hora), 0, 0, 0);
+    const inicioTurno = inicioDeTurno(datos.turnoId);
 
-    const cuatroHoras = 1000 * 60 * 60 * 4;
-    const cancelableHasta = new Date(inicioTurno.getTime() - cuatroHoras);
+    if (inicioTurno.getTime() <= Date.now()) {
+        throw new Error('Ese turno ya pasó. Elegí otro horario.');
+    }
+
+    const cancelableHasta = new Date(inicioTurno.getTime() - CUATRO_HORAS);
 
     const nueva: Reserva = {
         id: `res-${Date.now()}`,

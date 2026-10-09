@@ -7,6 +7,7 @@ import { cancelarReserva } from '@/src/servicios/reservas';
 import { obtenerReservaPorId } from '@/src/servicios/reservas';
 import { useEffect, useState } from 'react';
 import { Reserva } from '@/src/tipos/reserva';
+import { textoTurno, textoHora, textoDia } from '@/src/utils/turnos';
 
 export default function DetalleReserva() {
     const { id } = useLocalSearchParams();
@@ -19,8 +20,11 @@ export default function DetalleReserva() {
 
     const espacio = espacios.find((e) => e.id === reserva?.espacioId);
     const hasta = reserva ? new Date(reserva.cancelableHasta) : null;
-    const horaLimite = hasta?.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+    const horaLimite = hasta ? textoHora(hasta) : '';
     const sePuedeCancelar = hasta ? new Date() <= hasta : false;
+
+    const esHoy = hasta ? hasta.toDateString() === new Date().toDateString() : false;
+    const diaLimite = esHoy ? 'de hoy' : `del ${hasta ? textoDia(hasta) : ''}`;
 
     const router = useRouter();
 
@@ -45,6 +49,9 @@ export default function DetalleReserva() {
             >
                 {espacio?.nombre}
             </Text>
+            {reserva && (
+                <Text style={styles.fecha}>{textoTurno(reserva.turnoId)}</Text>
+            )}
             <Text>
                 {espacio?.complejo}
             </Text>
@@ -80,7 +87,7 @@ export default function DetalleReserva() {
             {reserva && (
                 <Text style={styles.ayuda}>
                     {sePuedeCancelar
-                        ? `Se puede cancelar sin aviso hasta las ${horaLimite} de hoy`
+                        ? `Se puede cancelar sin aviso hasta las ${horaLimite} ${diaLimite}`
                         : 'Para cancelar, avisá a la Dirección de Deportes'}
                 </Text>
             )}
@@ -96,4 +103,5 @@ const styles = StyleSheet.create({
     ayuda: { color: '#999', marginTop: 4 },
     botonCancelar: { backgroundColor: '#B71C1C', padding: 14, borderRadius: 8, marginTop: 24, width: '100%', alignItems: 'center' },
     botonDeshabilitado: { backgroundColor: '#BDBDBD' },
+    fecha: { fontSize: 16, fontWeight: 'bold', color: '#A4438C', marginBottom: 4 },
 })
