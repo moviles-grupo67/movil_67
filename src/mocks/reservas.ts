@@ -2,7 +2,7 @@ import { Reserva } from '@/src/tipos/reserva';
 
 export const reservas: Reserva[] = [
     {
-    id: 'res-1180',
+    id: 'tur-esp-02-20260919-19',
     turnoId: 'tur-0219-19',
     espacioId: 'esp-02',
     usuarioId: 'usr-207',
@@ -14,7 +14,7 @@ export const reservas: Reserva[] = [
     cancelableHasta: '2026-09-19T15:00:00-03:00',
   },
   {
-    id: 'res-1150',
+    id: 'tur-esp-01-20260912-21',
     turnoId: 'tur-0912-21',
     espacioId: 'esp-01',
     usuarioId: 'usr-207',

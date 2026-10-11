@@ -4,28 +4,44 @@ import QRCode from 'react-native-qrcode-svg';
 import { espacios } from '@/src/mocks/espacios';
 import { useRouter } from 'expo-router';
 import { cancelarReserva } from '@/src/servicios/reservas';
-import { obtenerReservas } from '@/src/servicios/reservas';
+import { obtenerReservaPorId } from '@/src/servicios/reservas';
 import { useEffect, useState } from 'react';
 import { Reserva } from '@/src/tipos/reserva';
+import { textoTurno, textoHora, textoDia } from '@/src/utils/turnos';
+import { vibrarExito, vibrarError } from '@/src/servicios/vibracion';
+import { Boton } from '@/components/Boton';
 
 export default function DetalleReserva() {
     const { id } = useLocalSearchParams();
-    const espacio = espacios.find((e) => e.id === reserva?.espacioId);
 
     const [reserva, setReserva] = useState<Reserva | undefined>(undefined);
 
     useEffect(() => {
-    obtenerReservas().then((todas) => {
-        setReserva(todas.find((r) => r.id === id));
-    });
+        obtenerReservaPorId(String(id)).then(setReserva);
     }, [id]);
+
+    const espacio = espacios.find((e) => e.id === reserva?.espacioId);
+    const hasta = reserva ? new Date(reserva.cancelableHasta) : null;
+    const horaLimite = hasta ? textoHora(hasta) : '';
+    const sePuedeCancelar = hasta ? new Date() <= hasta : false;
+
+    const esHoy = hasta ? hasta.toDateString() === new Date().toDateString() : false;
+    const diaLimite = esHoy ? 'de hoy' : `del ${hasta ? textoDia(hasta) : ''}`;
 
     const router = useRouter();
 
     async function handleCancelar() {
         if (!reserva) return;
-        await cancelarReserva(reserva.id);
-        router.back();
+        try {
+            await cancelarReserva(reserva.id);
+            vibrarExito();
+            router.back();
+        } catch (err) {
+            vibrarError();
+            if (err instanceof Error) {
+                alert(err.message);
+            }
+        }
     }
 
     return (
@@ -37,15 +53,18 @@ export default function DetalleReserva() {
             >
                 {espacio?.nombre}
             </Text>
+            {reserva && (
+                <Text style={styles.fecha}>{textoTurno(reserva.turnoId)}</Text>
+            )}
             <Text>
                 {espacio?.complejo}
             </Text>
             <Text>
-                {espacio?.precioPorHora} - se paga en el lugar
+                $ {espacio?.precioPorHora.toLocaleString('es-AR')} - se paga en el lugar
             </Text>
 
             {reserva && (
-                <View 
+                <View
                     style={styles.qrContainer}
                 >
                     <QRCode value={reserva.codigoQr} size={200} />
@@ -62,18 +81,31 @@ export default function DetalleReserva() {
             >
                 Mostráselo al encargado
             </Text>
-            <Pressable style={styles.botonCancelar} onPress={handleCancelar}>
-                <Text style={{ color: '#fff', fontWeight: 'bold' }}>Cancelar reserva</Text>
-            </Pressable>
+            <View style={styles.contenedorBoton}>
+                <Boton
+                    titulo="Cancelar reserva"
+                    variante="peligro"
+                    onPress={handleCancelar}
+                    deshabilitado={!sePuedeCancelar}
+                />
+            </View>
+            {reserva && (
+                <Text style={styles.ayuda}>
+                    {sePuedeCancelar
+                        ? `Se puede cancelar sin aviso hasta las ${horaLimite} ${diaLimite}`
+                        : 'Para cancelar, avisá a la Dirección de Deportes'}
+                </Text>
+            )}
         </View>
     )
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, padding: 20, alignItems: 'center'},
+    container: { flex: 1, padding: 20, alignItems: 'center' },
     titulo: { fontSize: 22, fontWeight: 'bold', marginBottom: 8 },
     qrContainer: { backgroundColor: '#fff', padding: 20, borderRadius: 12, marginVertical: 24 },
-    codigo: { fontWeight: 'bold', letterSpacing: 1},
+    codigo: { fontWeight: 'bold', letterSpacing: 1 },
     ayuda: { color: '#999', marginTop: 4 },
-    botonCancelar: { backgroundColor: '#B71C1C', padding: 14, borderRadius: 8, marginTop: 24, width: '100%', alignItems: 'center' },
+    contenedorBoton: { alignSelf: 'stretch', marginTop: 24 },
+    fecha: { fontSize: 16, fontWeight: 'bold', color: '#A4438C', marginBottom: 4 },
 })
