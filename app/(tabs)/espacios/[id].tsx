@@ -180,6 +180,18 @@ export default function DetalleEspacio() {
           )}
           <Text style={styles.titulo}>{espacio?.nombre}</Text>
           <Text>$ {espacio?.precioPorHora.toLocaleString('es-AR')} por hora</Text>
+          <Text style={styles.subtitulo}>Características</Text>
+          <View style={styles.chipsCaracteristicas}>
+            <View style={styles.chip}><Text style={styles.textoChip}>{espacio.superficie}</Text></View>
+          <View style={styles.chip}><Text style={styles.textoChip}>{espacio.techado ? 'Techada' : 'Al aire libre'}</Text></View>
+          {espacio.iluminacion && (
+            <View style={styles.chip}><Text style={styles.textoChip}>Con luz</Text></View>
+          )}
+          <View style={styles.chip}><Text style={styles.textoChip}>{espacio.capacidad} personas</Text></View>
+        </View>
+
+          <Text style={styles.subtitulo}>Reglas del lugar</Text>
+          <Text style={styles.reglas}>{espacio.reglas}</Text>
 
           <View style={styles.selector}>
             <Pressable onPress={() => cambiarDia(-1)} disabled={esPrimerDia} hitSlop={12}>
@@ -245,8 +257,20 @@ const styles = StyleSheet.create({
   turno: { padding: 10, marginVertical: 4, borderRadius: 8 },
   turnoElegido: { borderWidth: 3, borderColor: '#A4438C' },
   vacio: { textAlign: 'center', color: '#999', marginTop: 24 },
-  boton: { backgroundColor: '#A4438C', padding: 14, borderRadius: 8, marginTop: 16 },
-  textoBoton: { color: '#fff', textAlign: 'center', fontWeight: 'bold' },
   cargando: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  
+  subtitulo: { fontFamily: 'Inter-Medium', fontSize: 15, marginTop: 16, marginBottom: 4 },
+  reglas: { fontSize: 14, opacity: 0.8, lineHeight: 20 },
+  chipsCaracteristicas: { flexDirection: 'row', gap: 6, marginTop: 8, flexWrap: 'wrap' },
+  chip: {
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 10,
+    backgroundColor: '#A4438C22',
+    flexShrink: 0,
+  },
+  textoChip: {
+    fontFamily: 'Inter-Medium',
+    fontSize: 12,
+    color: '#A4438C',
+  },
 });

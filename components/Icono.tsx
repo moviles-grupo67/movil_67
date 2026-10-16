@@ -13,7 +13,8 @@ export type NombreIcono =
   | 'usuarioX'
   | 'chevron'
   | 'salir'
-  | 'huella';
+  | 'huella'
+  | 'filtro';
 
 interface Props {
   nombre: NombreIcono;
@@ -114,6 +115,9 @@ export function Icono({ nombre, color, size = 20 }: Props) {
           <Path d="M5 12h14" />
           <Path d="m12 5 7 7-7 7" />
         </>
+      )}
+      {nombre === 'filtro' && (
+        <Path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" />
       )}
     </Svg>
   );

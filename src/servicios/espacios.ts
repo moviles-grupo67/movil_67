@@ -2,6 +2,8 @@ import { espacios as espaciosMock } from '@/src/mocks/espacios';
 import { Espacio } from '@/src/tipos/espacio';
 import { Respuesta } from '@/src/tipos/api';
 
+// Simula la latencia de una llamada
+
 const LATENCIA_MS = 400;
 const esperar = () => new Promise((resolver) => setTimeout(resolver, LATENCIA_MS));
 
