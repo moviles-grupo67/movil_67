@@ -1,15 +1,19 @@
 import { useAuth } from '@/contexts/auth-context';
 import { Icono } from '@/components/Icono';
-import { espacios } from '@/src/mocks/espacios';
+import { useState, useCallback, useEffect } from 'react';
+import { obtenerEspacioPorId } from '@/src/servicios/espacios';
+import { esError } from '@/src/tipos/api';
+import { Espacio } from '@/src/tipos/espacio';
 import { crearReserva, obtenerTurnosOcupados } from '@/src/servicios/reservas';
 import { crearTurnoId, inicioDeTurno, textoTurno, CUATRO_HORAS } from '@/src/utils/turnos';
 import { vibrarExito, vibrarError, vibrarToque } from '@/src/servicios/vibracion';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
-import { useState, useCallback } from 'react';
-import { Pressable, FlatList, StyleSheet, Text, Alert, View } from 'react-native';
+import { Pressable, FlatList, StyleSheet, Text, Alert, View,useWindowDimensions} from 'react-native';
 import { Boton } from '@/components/Boton';
-
-// Zequi, vos podes checkear esto y modificarlo a tu gusto, es tu parte :) 
+import { Image } from 'expo-image';
+import { useVideoPlayer, VideoView } from 'expo-video';
+import { Carousel, Pagination } from 'react-native-reanimated-carousel';// Libreria Carrousel
+import { useSharedValue } from 'react-native-reanimated'; // Libreria Carrousel
 
 const DIAS_VISIBLES = 7;
 
@@ -37,12 +41,23 @@ export default function DetalleEspacio() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const { sesion } = useAuth();
-  const espacio = espacios.find((e) => e.id === id);
-
+  const { width: anchoPantalla } = useWindowDimensions();
+  const anchoMedio = anchoPantalla - 40;
+  const progress = useSharedValue(0);
+  const [espacio, setEspacio] = useState<Espacio | undefined>(undefined);
+  const player = useVideoPlayer(espacio?.videoUrl ?? null, (p) => {
+    p.loop = true;
+  });
   const [ocupados, setOcupados] = useState<string[]>([]);
   const [diaOffset, setDiaOffset] = useState(0);
   const [turnoSeleccionado, setTurnoSeleccionado] = useState<string | null>(null);
-
+  useEffect(() => {
+    obtenerEspacioPorId(String(id)).then((resultado) => {
+      if (!esError(resultado)) {
+        setEspacio(resultado.datos);
+      }
+    });
+  }, [id]);
   useFocusEffect(
     useCallback(() => {
       obtenerTurnosOcupados(String(id)).then(setOcupados);
@@ -115,14 +130,54 @@ export default function DetalleEspacio() {
   const esPrimerDia = diaOffset === 0;
   const esUltimoDia = diaOffset === DIAS_VISIBLES - 1;
 
+  if (!espacio) {
+    return (
+      <View style={styles.cargando}>
+        <Text>Cargando...</Text>
+      </View>
+    );
+  }
+
+  //Array de Imagenes y videos
+  const medios = [
+    ...espacio.imagenes.map((url) => ({ tipo: 'imagen' as const, url })),
+    ...(espacio.videoUrl ? [{ tipo: 'video' as const, url: espacio.videoUrl }] : []),
+  ];
+
+
   return (
     <FlatList
       data={turnos}
       keyExtractor={(turno) => turno.id}
       extraData={turnoSeleccionado}
       contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
+      //Carrousel de imagenes y videos de las canchas
       ListHeaderComponent={
         <>
+          {medios.length > 0 && (
+            <Carousel
+              data={medios}
+              loop={false}
+              progress={progress}
+              style={{ width: anchoMedio, height: 220, borderRadius: 16, marginBottom: 12 }}
+              renderItem={({ item }) =>
+                item.tipo === 'video' ? (
+                  <VideoView player={player} style={{ width: anchoMedio, height: 220 }} />
+                ) : (
+                  <Image source={{ uri: item.url }} style={{ width: anchoMedio, height: 220 }} />
+                )
+              }
+            />
+          )}
+          {medios.length > 1 && (
+            <Pagination
+              count={medios.length}
+              progress={progress}
+              dotStyle={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#D8C3D1' }}
+              activeDotStyle={{ width: 16, height: 6, borderRadius: 3, backgroundColor: '#A4438C' }}
+              containerStyle={{ gap: 6, marginBottom: 12, justifyContent:'center'}}
+            />
+          )}
           <Text style={styles.titulo}>{espacio?.nombre}</Text>
           <Text>$ {espacio?.precioPorHora.toLocaleString('es-AR')} por hora</Text>
 
@@ -192,4 +247,6 @@ const styles = StyleSheet.create({
   vacio: { textAlign: 'center', color: '#999', marginTop: 24 },
   boton: { backgroundColor: '#A4438C', padding: 14, borderRadius: 8, marginTop: 16 },
   textoBoton: { color: '#fff', textAlign: 'center', fontWeight: 'bold' },
+  cargando: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  
 });

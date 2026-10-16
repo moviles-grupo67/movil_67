@@ -1,17 +1,29 @@
 import { StyleSheet, FlatList, Pressable, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { espacios } from '@/src/mocks/espacios';
+import { useEffect, useState } from 'react';
+import { obtenerEspacios } from '@/src/servicios/espacios';
+import { esError } from '@/src/tipos/api';
+import { Espacio } from '@/src/tipos/espacio';
 import { Text } from '@/components/Themed';
 import { Icono } from '@/components/Icono';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
-
-//Aca complete un poco para poder probar reservas pero pueden modificar cuando les toque el turno
+import { Image } from 'expo-image';
 
 export default function EspaciosScreen() {
 
   const tema = Colors[useColorScheme() ?? 'light'];
   const router = useRouter();
+
+  const [espacios, setEspacios] = useState<Espacio[]>([]);
+
+  useEffect(() => {
+    obtenerEspacios().then((resultado) => {
+      if (!esError(resultado)) {
+        setEspacios(resultado.datos);
+      }
+    });
+  }, []);
 
   return (
     <FlatList
@@ -26,6 +38,14 @@ export default function EspaciosScreen() {
             { backgroundColor: tema.surface, borderColor: tema.tabIconDefault + '33' },
             pressed && styles.presionada,
           ]}>
+          <Image
+            source={
+              espacio.imagenes[0]
+                ? { uri: espacio.imagenes[0] }
+                : require('@/assets/images/icon.png')
+            }
+            style={styles.miniatura}
+          />
           <View style={styles.info}>
             <Text style={styles.nombre}>{espacio.nombre}</Text>
             <Text style={styles.complejo}>{espacio.complejo}</Text>
@@ -63,6 +83,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 16,
   },
+  miniatura: { width: 56, height: 56, borderRadius: 12 },
   presionada: { opacity: 0.7, transform: [{ scale: 0.98 }] },
   info: { flex: 1, gap: 4 },
   nombre: { fontFamily: 'Inter-Medium', fontSize: 17 },
