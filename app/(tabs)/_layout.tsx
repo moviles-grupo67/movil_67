@@ -20,9 +20,6 @@ export default function TabLayout() {
 
   const { sesion } = useAuth();
   const mostrarGestion = esStaff(sesion?.usuario.rol);
-  console.log("Sesión:", sesion);
-  console.log("Rol:", sesion?.usuario.rol);
-  console.log("Mostrar Gestión:", mostrarGestion);
 
   return (
     <Tabs
@@ -53,11 +50,11 @@ export default function TabLayout() {
       />
 
       <Tabs.Screen
-        name="gestion/index"
+        name="gestion"
         options={{
           title: "Gestión",
           headerShown: false,
-          href: mostrarGestion ? "/(tabs)/gestion" : null,
+          href: mostrarGestion ? undefined : null,
           tabBarIcon: ({ color }) => <TabBarIcon name="cog" color={color} />,
         }}
       />

@@ -10,6 +10,8 @@ export interface Usuario {
   ausencias: number;
 }
 
+// Falta email y num telefono?
+
 export interface Sesion {
   token: string;
   usuario: Usuario;
