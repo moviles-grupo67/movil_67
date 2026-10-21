@@ -1,13 +1,13 @@
-export type EstadoTurno = "confirmado" | "cancelado" | "cumplido" | "ausente";
+export type EstadoTurno = "libre" | "reservado" | "fijo" | "mantenimiento";
 
 export interface Turno {
   id: string;
   espacioId: string;
-  fecha: string;
-  inicio: string;
+  fecha: string; // "AAAA-MM-DD"
+  inicio: string; // "HH:MM"
   fin: string;
   estado: EstadoTurno;
-  reservaID: string | null;
+  reservaId: string | null;
   motivoBloqueo: string | null;
   precio: number;
 }

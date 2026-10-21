@@ -1,13 +1,15 @@
-import React from 'react';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { Tabs } from 'expo-router';
+import { useAuth } from "@/contexts/auth-context";
+import { esStaff } from "@/src/dominio/permisos";
+import FontAwesome from "@expo/vector-icons/FontAwesome";
+import { Tabs } from "expo-router";
+import React from "react";
 
-import Colors from '@/constants/Colors';
-import { useColorScheme } from '@/components/useColorScheme';
-import { useClientOnlyValue } from '@/components/useClientOnlyValue';
+import { useClientOnlyValue } from "@/components/useClientOnlyValue";
+import { useColorScheme } from "@/components/useColorScheme";
+import Colors from "@/constants/Colors";
 
 function TabBarIcon(props: {
-  name: React.ComponentProps<typeof FontAwesome>['name'];
+  name: React.ComponentProps<typeof FontAwesome>["name"];
   color: string;
 }) {
   return <FontAwesome size={28} style={{ marginBottom: -3 }} {...props} />;
@@ -16,32 +18,51 @@ function TabBarIcon(props: {
 export default function TabLayout() {
   const colorScheme = useColorScheme();
 
+  const { sesion } = useAuth();
+  const mostrarGestion = esStaff(sesion?.usuario.rol);
+
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+        tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
         headerShown: useClientOnlyValue(false, true),
-      }}>
+      }}
+    >
       <Tabs.Screen
         name="espacios"
         options={{
-          title: 'Espacios',
+          title: "Espacios",
           headerShown: false,
-          tabBarIcon: ({ color }) => <TabBarIcon name="th-large" color={color} />,
+          tabBarIcon: ({ color }) => (
+            <TabBarIcon name="th-large" color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="reservas"
         options={{
-          title: 'Reservas',
+          title: "Reservas",
           headerShown: false,
-          tabBarIcon: ({ color }) => <TabBarIcon name="calendar" color={color} />,
+          tabBarIcon: ({ color }) => (
+            <TabBarIcon name="calendar" color={color} />
+          ),
         }}
       />
+
+      <Tabs.Screen
+        name="gestion"
+        options={{
+          title: "Gestión",
+          headerShown: false,
+          href: mostrarGestion ? undefined : null,
+          tabBarIcon: ({ color }) => <TabBarIcon name="cog" color={color} />,
+        }}
+      />
+
       <Tabs.Screen
         name="cuenta"
         options={{
-          title: 'Cuenta',
+          title: "Cuenta",
           headerShown: false,
           tabBarIcon: ({ color }) => <TabBarIcon name="user" color={color} />,
         }}
