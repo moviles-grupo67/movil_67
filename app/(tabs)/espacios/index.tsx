@@ -61,7 +61,7 @@ export default function EspaciosScreen() {
         keyExtractor={(espacio) => espacio.id}
         contentContainerStyle={styles.lista}
         ListHeaderComponent={
-          <Pressable style={styles.botonFiltro} onPress={() => setFiltrosVisibles(true)}>
+          <Pressable style={[styles.botonFiltro, { borderColor: tema.tint + '33' }]} onPress={() => setFiltrosVisibles(true)}>
             <Icono nombre="filtro" color={tema.tint} size={18} />
             <Text style={[styles.textoBotonFiltro, { color: tema.tint }]}>
               Filtros{cantidadFiltrosActivos > 0 ? ` (${cantidadFiltrosActivos})` : ''}
@@ -219,7 +219,6 @@ const styles = StyleSheet.create({
   paddingVertical: 8,
   borderRadius: 20,
   borderWidth: 1,
-  borderColor: '#A4438C33',
   marginBottom: 16,
 },
   textoBotonFiltro: { fontFamily: 'Inter-Medium', fontSize: 13 },
