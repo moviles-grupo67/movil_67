@@ -1,6 +1,9 @@
 import { reservas as reservasMock } from '@/src/mocks/reservas';
 import { Reserva } from '@/src/tipos/reserva';
 import { inicioDeTurno, CUATRO_HORAS } from '@/src/utils/turnos';
+import { bloqueos } from '@/src/mocks/bloqueos';
+import { reservasFijas } from '@/src/mocks/reservasFijas';
+import { estaBloqueado, esFijo } from '@/src/utils/disponibilidad';
 
 let reservas: Reserva[] = [...reservasMock];
 
@@ -52,6 +55,18 @@ export async function crearReserva(datos: {
 
     if (inicioTurno.getTime() <= Date.now()) {
         throw new Error('Ese turno ya pasó. Elegí otro horario.');
+    }
+
+    const hora = inicioTurno.getHours();
+
+    if (estaBloqueado(bloqueos, datos.espacioId, inicioTurno, hora)) {
+        throw new Error('Ese espacio está cerrado en ese horario. Elegí otro turno.');
+    }
+    if (esFijo(reservasFijas, datos.espacioId, inicioTurno, hora)) {
+        throw new Error('Ese turno es de una reserva fija. Elegí otro horario.');
+    }
+    if (reservas.some((r) => r.turnoId === datos.turnoId && r.estado === 'confirmada')) {
+        throw new Error('Ese turno ya está reservado. Elegí otro.');
     }
 
     const cancelableHasta = new Date(inicioTurno.getTime() - CUATRO_HORAS);
