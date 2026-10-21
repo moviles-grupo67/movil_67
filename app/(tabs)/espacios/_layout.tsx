@@ -8,6 +8,7 @@ export default function EspaciosLayout() {
     <Stack screenOptions={header}>
       <Stack.Screen name="index" options={{ title: 'Espacios' }} />
       <Stack.Screen name="[id]" options={{ title: '' }} />
+      <Stack.Screen name="mapa" options={{ title: 'Mapa de complejos' }} />
     </Stack>
   );
 }

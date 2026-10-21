@@ -61,12 +61,19 @@ export default function EspaciosScreen() {
         keyExtractor={(espacio) => espacio.id}
         contentContainerStyle={styles.lista}
         ListHeaderComponent={
-          <Pressable style={[styles.botonFiltro, { borderColor: tema.tint + '33' }]} onPress={() => setFiltrosVisibles(true)}>
-            <Icono nombre="filtro" color={tema.tint} size={18} />
-            <Text style={[styles.textoBotonFiltro, { color: tema.tint }]}>
-              Filtros{cantidadFiltrosActivos > 0 ? ` (${cantidadFiltrosActivos})` : ''}
-            </Text>
-          </Pressable>
+          <View style={styles.filaBotones}>
+            <Pressable style={[styles.botonFiltro, { borderColor: tema.tint + '33' }]} onPress={() => setFiltrosVisibles(true)}>
+              <Icono nombre="filtro" color={tema.tint} size={18} />
+              <Text style={[styles.textoBotonFiltro, { color: tema.tint }]}>
+                Filtros{cantidadFiltrosActivos > 0 ? ` (${cantidadFiltrosActivos})` : ''}
+              </Text>
+            </Pressable>
+
+            <Pressable style={[styles.botonFiltro, { borderColor: tema.tint + '33' }]} onPress={() => router.push('/espacios/mapa')}>
+              <Icono nombre="ubicacion" color={tema.tint} size={18} />
+              <Text style={[styles.textoBotonFiltro, { color: tema.tint }]}>Mapa</Text>
+            </Pressable>
+          </View>
         }
         renderItem={({ item: espacio }) => {
           const deporte = deportes.find((d) => d.id === espacio.deporteId);
@@ -219,16 +226,20 @@ const styles = StyleSheet.create({
   },
   precio: { fontFamily: 'Inter-Medium', fontSize: 15, marginTop: 6 },
   botonFiltro: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  gap: 6,
-  alignSelf: 'flex-end',
-  paddingHorizontal: 14,
-  paddingVertical: 8,
-  borderRadius: 20,
-  borderWidth: 1,
-  marginBottom: 16,
-},
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  filaBotones: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 8,
+    marginBottom: 16,
+  },
   textoBotonFiltro: { fontFamily: 'Inter-Medium', fontSize: 13 },
   fondoModal: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   panelFiltros: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 32 },
