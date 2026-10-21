@@ -68,45 +68,51 @@ export default function EspaciosScreen() {
             </Text>
           </Pressable>
         }
-        renderItem={({ item: espacio }) => (
-          <Pressable
-            onPress={() => router.push({ pathname: '/espacios/[id]', params: { id: espacio.id } })}
-            style={({ pressed }) => [
-              styles.tarjeta,
-              { backgroundColor: tema.surface, borderColor: tema.tabIconDefault + '33' },
-              pressed && styles.presionada,
-            ]}>
-            <Image
-              source={
-                espacio.imagenes[0]
-                  ? { uri: espacio.imagenes[0] }
-                  : require('@/assets/images/icon.png')
-              }
-              style={styles.miniatura}
-            />
-            <View style={styles.info}>
-              <Text style={styles.nombre}>{espacio.nombre}</Text>
-              <Text style={styles.complejo}>{espacio.complejo}</Text>
+        renderItem={({ item: espacio }) => {
+          const deporte = deportes.find((d) => d.id === espacio.deporteId);
+          return (
+            <Pressable
+              onPress={() => router.push({ pathname: '/espacios/[id]', params: { id: espacio.id } })}
+              style={({ pressed }) => [
+                styles.tarjeta,
+                { backgroundColor: tema.surface, borderColor: tema.tabIconDefault + '33' },
+                pressed && styles.presionada,
+              ]}>
+              <Image
+                source={
+                  espacio.imagenes[0]
+                    ? { uri: espacio.imagenes[0] }
+                    : require('@/assets/images/icon.png')
+                }
+                style={styles.miniatura}
+              />
+              <View style={styles.info}>
+                <Text style={styles.nombre}>{espacio.nombre}</Text>
+                <Text style={styles.complejo}>{espacio.complejo}</Text>
+                <View style={styles.chips}>
+                  <View style={[styles.chip, { backgroundColor: deporte?.color ?? tema.tint }]}>
+                    <Text style={[styles.textoChip, { color: '#FFFFFF' }]}>{deporte?.nombre}</Text>
+                  </View>
+                  <View style={[styles.chip, { backgroundColor: tema.tint + '22' }]}>
+                    <Text style={[styles.textoChip, { color: tema.tint }]}>{espacio.superficie}</Text>
+                  </View>
+                  {espacio.iluminacion && (
+                    <View style={[styles.chip, { backgroundColor: tema.tint + '22' }]}>
+                      <Text style={[styles.textoChip, { color: tema.tint }]}>Con luz</Text>
+                    </View>
+                  )}
+                </View>
+               
 
-              <View style={styles.chips}>
-                <Text style={[styles.chip, { color: tema.tint, backgroundColor: tema.tint + '22' }]}>
-                  {espacio.techado ? 'Techada' : 'Al aire libre'}
+                <Text style={[styles.precio, { color: tema.tint }]}>
+                  $ {espacio.precioPorHora.toLocaleString('es-AR')} / hora
                 </Text>
-                {espacio.iluminacion && (
-                  <Text style={[styles.chip, { color: tema.tint, backgroundColor: tema.tint + '22' }]}>
-                    Con luz
-                  </Text>
-                )}
               </View>
 
-              <Text style={[styles.precio, { color: tema.tint }]}>
-                $ {espacio.precioPorHora.toLocaleString('es-AR')} / hora
-              </Text>
-            </View>
-
-            <Icono nombre="chevron" color={tema.tabIconDefault} size={20} />
-          </Pressable>
-        )}
+              <Icono nombre="chevron" color={tema.tabIconDefault} size={20} />
+            </Pressable>
+          );
+        }}
       />
 
       <Modal
@@ -200,14 +206,16 @@ const styles = StyleSheet.create({
   info: { flex: 1, gap: 4 },
   nombre: { fontFamily: 'Inter-Medium', fontSize: 17 },
   complejo: { fontFamily: 'Inter-Regular', fontSize: 13, opacity: 0.6 },
-  chips: { flexDirection: 'row', gap: 6, marginTop: 6 },
+  chips: { flexDirection: 'row', gap: 6, marginTop: 6, flexWrap: 'wrap' },
   chip: {
-    fontFamily: 'Inter-Medium',
-    fontSize: 12,
     paddingHorizontal: 10,
     paddingVertical: 3,
     borderRadius: 10,
-    overflow: 'hidden',
+    flexShrink: 0,
+  },
+  textoChip: {
+    fontFamily: 'Inter-Medium',
+    fontSize: 12,
   },
   precio: { fontFamily: 'Inter-Medium', fontSize: 15, marginTop: 6 },
   botonFiltro: {
@@ -225,4 +233,5 @@ const styles = StyleSheet.create({
   fondoModal: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   panelFiltros: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 32 },
   tituloFiltros: { fontFamily: 'Inter-Medium', fontSize: 15, marginBottom: 8, marginTop: 12 },
+  deporteSuperficie: { fontFamily: 'Inter-Regular', fontSize: 13, opacity: 0.6, marginTop: 2 },
 });

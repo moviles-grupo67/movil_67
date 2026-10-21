@@ -5,6 +5,6 @@ export const deportes: Deporte[] = [
   { id: 'dep-futbol11', nombre: 'Fútbol 11', icono: 'football-outline', color: '#1B5E20' },
   { id: 'dep-basquet', nombre: 'Básquet', icono: 'basketball-outline', color: '#E65100' },
   { id: 'dep-voley', nombre: 'Vóley', icono: 'ellipse-outline', color: '#0277BD' },
-  { id: 'dep-tenis', nombre: 'Tenis', icono: 'tennisball-outline', color: '#C0CA33' },
+  { id: 'dep-tenis', nombre: 'Tenis', icono: 'tennisball-outline', color: '#ca3360' },
   { id: 'dep-gimnasio', nombre: 'Gimnasio', icono: 'barbell-outline', color: '#6A1B9A' },
 ];
