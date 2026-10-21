@@ -8,16 +8,28 @@ import { crearReserva, obtenerTurnosOcupados } from '@/src/servicios/reservas';
 import { crearTurnoId, inicioDeTurno, textoTurno, CUATRO_HORAS } from '@/src/utils/turnos';
 import { vibrarExito, vibrarError, vibrarToque } from '@/src/servicios/vibracion';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
-import { Pressable, FlatList, StyleSheet, Text, Alert, View,useWindowDimensions} from 'react-native';
+import { Pressable, FlatList, StyleSheet, Text, Alert, View, useWindowDimensions } from 'react-native';
 import { Boton } from '@/components/Boton';
 import { Image } from 'expo-image';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { Carousel, Pagination } from 'react-native-reanimated-carousel';// Libreria Carrousel
 import { useSharedValue } from 'react-native-reanimated'; // Libreria Carrousel
+import { obtenerBloqueos } from '@/src/servicios/bloqueos';
+import { obtenerReservasFijas } from '@/src/servicios/reservasFijas';
+import { Bloqueo } from '@/src/tipos/bloqueo';
+import { ReservaFija } from '@/src/tipos/reservaFija';
+import { estaBloqueado, esFijo } from '@/src/utils/disponibilidad';
 
 const DIAS_VISIBLES = 7;
 
-type Turno = { id: string; hora: number; estado: 'libre' | 'ocupado' };
+type Turno = { id: string; hora: number; estado: 'libre' | 'reservado' | 'fijo' | 'mantenimiento' };
+
+const COLOR_ESTADO = {
+  libre: '#C8E6C9',
+  reservado: '#EF9A9A',
+  fijo: '#FFE0B2',
+  mantenimiento: '#E0E0E0',
+};
 
 function generarTurnos(espacioId: string, fecha: Date): Turno[] {
   const turnos: Turno[] = [];
@@ -49,6 +61,8 @@ export default function DetalleEspacio() {
     p.loop = true;
   });
   const [ocupados, setOcupados] = useState<string[]>([]);
+  const [bloqueos, setBloqueos] = useState<Bloqueo[]>([]);
+  const [fijas, setFijas] = useState<ReservaFija[]>([]);
   const [diaOffset, setDiaOffset] = useState(0);
   const [turnoSeleccionado, setTurnoSeleccionado] = useState<string | null>(null);
   useEffect(() => {
@@ -61,6 +75,12 @@ export default function DetalleEspacio() {
   useFocusEffect(
     useCallback(() => {
       obtenerTurnosOcupados(String(id)).then(setOcupados);
+      obtenerBloqueos({ espacioId: String(id) }).then((r) => {
+        if (!esError(r)) setBloqueos(r.datos);
+      });
+      obtenerReservasFijas({ espacioId: String(id), soloActivas: true }).then((r) => {
+        if (!esError(r)) setFijas(r.datos);
+      });
     }, [id])
   );
 
@@ -71,7 +91,12 @@ export default function DetalleEspacio() {
   const turnos = espacio
     ? generarTurnos(espacio.id, fecha)
       .filter((t) => inicioDeTurno(t.id).getTime() > ahora)
-      .map((t) => (ocupados.includes(t.id) ? { ...t, estado: 'ocupado' as const } : t))
+      .map((t): Turno => {
+        if (estaBloqueado(bloqueos, espacio.id, fecha, t.hora)) return { ...t, estado: 'mantenimiento' };
+        if (esFijo(fijas, espacio.id, fecha, t.hora)) return { ...t, estado: 'fijo' };
+        if (ocupados.includes(t.id)) return { ...t, estado: 'reservado' };
+        return t;
+      })
     : [];
 
   function cambiarDia(delta: number) {
@@ -175,7 +200,7 @@ export default function DetalleEspacio() {
               progress={progress}
               dotStyle={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#D8C3D1' }}
               activeDotStyle={{ width: 16, height: 6, borderRadius: 3, backgroundColor: '#A4438C' }}
-              containerStyle={{ gap: 6, marginBottom: 12, justifyContent:'center'}}
+              containerStyle={{ gap: 6, marginBottom: 12, justifyContent: 'center' }}
             />
           )}
           <Text style={styles.titulo}>{espacio?.nombre}</Text>
@@ -183,12 +208,12 @@ export default function DetalleEspacio() {
           <Text style={styles.subtitulo}>Características</Text>
           <View style={styles.chipsCaracteristicas}>
             <View style={styles.chip}><Text style={styles.textoChip}>{espacio.superficie}</Text></View>
-          <View style={styles.chip}><Text style={styles.textoChip}>{espacio.techado ? 'Techada' : 'Al aire libre'}</Text></View>
-          {espacio.iluminacion && (
-            <View style={styles.chip}><Text style={styles.textoChip}>Con luz</Text></View>
-          )}
-          <View style={styles.chip}><Text style={styles.textoChip}>{espacio.capacidad} personas</Text></View>
-        </View>
+            <View style={styles.chip}><Text style={styles.textoChip}>{espacio.techado ? 'Techada' : 'Al aire libre'}</Text></View>
+            {espacio.iluminacion && (
+              <View style={styles.chip}><Text style={styles.textoChip}>Con luz</Text></View>
+            )}
+            <View style={styles.chip}><Text style={styles.textoChip}>{espacio.capacidad} personas</Text></View>
+          </View>
 
           <Text style={styles.subtitulo}>Reglas del lugar</Text>
           <Text style={styles.reglas}>{espacio.reglas}</Text>
@@ -217,7 +242,7 @@ export default function DetalleEspacio() {
           }}
           style={[
             styles.turno,
-            { backgroundColor: turno.estado === 'libre' ? '#C8E6C9' : '#EF9A9A' },
+            { backgroundColor: COLOR_ESTADO[turno.estado] },
             turnoSeleccionado === turno.id && styles.turnoElegido,
           ]}>
           <Text style={{ color: '#000' }}>
