@@ -7,7 +7,7 @@ import { Espacio } from '@/src/tipos/espacio';
 import { crearReserva, obtenerTurnosOcupados } from '@/src/servicios/reservas';
 import { crearTurnoId, inicioDeTurno, textoTurno, CUATRO_HORAS } from '@/src/utils/turnos';
 import { vibrarExito, vibrarError, vibrarToque } from '@/src/servicios/vibracion';
-import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
+import { useLocalSearchParams, useRouter, useFocusEffect, Stack } from 'expo-router';
 import { Pressable, FlatList, StyleSheet, Text, Alert, View, useWindowDimensions } from 'react-native';
 import { Boton } from '@/components/Boton';
 import { Image } from 'expo-image';
@@ -19,6 +19,10 @@ import { obtenerReservasFijas } from '@/src/servicios/reservasFijas';
 import { Bloqueo } from '@/src/tipos/bloqueo';
 import { ReservaFija } from '@/src/tipos/reservaFija';
 import { estaBloqueado, esFijo } from '@/src/utils/disponibilidad';
+import Colors from '@/constants/Colors';
+import { useColorScheme } from '@/components/useColorScheme';
+import { obtenerDeportes } from '@/src/servicios/deportes';
+import { Deporte } from '@/src/tipos/deporte';
 
 const DIAS_VISIBLES = 7;
 
@@ -30,6 +34,7 @@ const COLOR_ESTADO = {
   fijo: '#FFE0B2',
   mantenimiento: '#E0E0E0',
 };
+
 
 function generarTurnos(espacioId: string, fecha: Date): Turno[] {
   const turnos: Turno[] = [];
@@ -56,10 +61,17 @@ export default function DetalleEspacio() {
   const { width: anchoPantalla } = useWindowDimensions();
   const anchoMedio = anchoPantalla - 40;
   const progress = useSharedValue(0);
+  const tema = Colors[useColorScheme() ?? 'light'];
   const [espacio, setEspacio] = useState<Espacio | undefined>(undefined);
   const player = useVideoPlayer(espacio?.videoUrl ?? null, (p) => {
     p.loop = true;
   });
+  const [deportes, setDeportes] = useState<Deporte[]>([]);
+    useEffect(() => {
+      obtenerDeportes().then((r) => {
+        if (!esError(r)) setDeportes(r.datos);
+      });
+    }, []);
   const [ocupados, setOcupados] = useState<string[]>([]);
   const [bloqueos, setBloqueos] = useState<Bloqueo[]>([]);
   const [fijas, setFijas] = useState<ReservaFija[]>([]);
@@ -158,10 +170,11 @@ export default function DetalleEspacio() {
   if (!espacio) {
     return (
       <View style={styles.cargando}>
-        <Text>Cargando...</Text>
+        <Text style={{ color: tema.text }}>Cargando...</Text>
       </View>
     );
   }
+  const deporte = deportes.find((d) => d.id === espacio.deporteId);
 
   //Array de Imagenes y videos
   const medios = [
@@ -171,101 +184,107 @@ export default function DetalleEspacio() {
 
 
   return (
-    <FlatList
-      data={turnos}
-      keyExtractor={(turno) => turno.id}
-      extraData={turnoSeleccionado}
-      contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
-      //Carrousel de imagenes y videos de las canchas
-      ListHeaderComponent={
-        <>
-          {medios.length > 0 && (
-            <Carousel
-              data={medios}
-              loop={false}
-              progress={progress}
-              style={{ width: anchoMedio, height: 220, borderRadius: 16, marginBottom: 12 }}
-              renderItem={({ item }) =>
-                item.tipo === 'video' ? (
-                  <VideoView player={player} style={{ width: anchoMedio, height: 220 }} />
-                ) : (
-                  <Image source={{ uri: item.url }} style={{ width: anchoMedio, height: 220 }} />
-                )
-              }
-            />
-          )}
-          {medios.length > 1 && (
-            <Pagination
-              count={medios.length}
-              progress={progress}
-              dotStyle={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#D8C3D1' }}
-              activeDotStyle={{ width: 16, height: 6, borderRadius: 3, backgroundColor: '#A4438C' }}
-              containerStyle={{ gap: 6, marginBottom: 12, justifyContent: 'center' }}
-            />
-          )}
-          <Text style={styles.titulo}>{espacio?.nombre}</Text>
-          <Text>$ {espacio?.precioPorHora.toLocaleString('es-AR')} por hora</Text>
-          <Text style={styles.subtitulo}>Características</Text>
-          <View style={styles.chipsCaracteristicas}>
-            <View style={styles.chip}><Text style={styles.textoChip}>{espacio.superficie}</Text></View>
-            <View style={styles.chip}><Text style={styles.textoChip}>{espacio.techado ? 'Techada' : 'Al aire libre'}</Text></View>
-            {espacio.iluminacion && (
-              <View style={styles.chip}><Text style={styles.textoChip}>Con luz</Text></View>
+    <>
+      <Stack.Screen options={{ title: espacio.nombre }} />
+      <FlatList
+        data={turnos}
+        keyExtractor={(turno) => turno.id}
+        extraData={turnoSeleccionado}
+        contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
+        //Carrousel de imagenes y videos de las canchas
+        ListHeaderComponent={
+          <>
+            {medios.length > 0 && (
+              <Carousel
+                data={medios}
+                loop={false}
+                progress={progress}
+                style={{ width: anchoMedio, height: 220, borderRadius: 16, marginBottom: 12 }}
+                renderItem={({ item }) =>
+                  item.tipo === 'video' ? (
+                    <VideoView player={player} style={{ width: anchoMedio, height: 220 }} />
+                  ) : (
+                    <Image source={{ uri: item.url }} style={{ width: anchoMedio, height: 220 }} />
+                  )
+                }
+              />
             )}
-            <View style={styles.chip}><Text style={styles.textoChip}>{espacio.capacidad} personas</Text></View>
-          </View>
-
-          <Text style={styles.subtitulo}>Reglas del lugar</Text>
-          <Text style={styles.reglas}>{espacio.reglas}</Text>
-
-          <View style={styles.selector}>
-            <Pressable onPress={() => cambiarDia(-1)} disabled={esPrimerDia} hitSlop={12}>
-              <View style={[styles.flechaIzq, esPrimerDia && styles.apagada]}>
-                <Icono nombre="chevron" color="#A4438C" size={24} />
+            {medios.length > 1 && (
+              <Pagination
+                count={medios.length}
+                progress={progress}
+                dotStyle={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#D8C3D1' }}
+                activeDotStyle={{ width: 16, height: 6, borderRadius: 3, backgroundColor: '#A4438C' }}
+                containerStyle={{ gap: 6, marginBottom: 12, justifyContent: 'center' }}
+              />
+            )}
+            <Text style={[styles.titulo, { color: tema.text }]}>{espacio?.nombre}</Text>
+            <Text style={{ color: tema.text }}>$ {espacio?.precioPorHora.toLocaleString('es-AR')} por hora</Text>
+            <Text style={[styles.subtitulo, { color: tema.text }]}>Características</Text>
+            <View style={styles.chipsCaracteristicas}>
+              <View style={[styles.chip, { backgroundColor: deporte?.color ?? tema.tint }]}>
+                <Text style={[styles.textoChip, { color: '#FFFFFF' }]}>{deporte?.nombre}</Text>
               </View>
-            </Pressable>
-            <Text style={styles.dia}>{nombreDelDia(fecha, diaOffset)}</Text>
-            <Pressable onPress={() => cambiarDia(1)} disabled={esUltimoDia} hitSlop={12}>
-              <View style={esUltimoDia && styles.apagada}>
-                <Icono nombre="chevron" color="#A4438C" size={24} />
-              </View>
-            </Pressable>
-          </View>
-        </>
-      }
-      renderItem={({ item: turno }) => (
-        <Pressable
-          disabled={turno.estado !== 'libre'}
-          onPress={() => {
-            vibrarToque();
-            setTurnoSeleccionado(turno.id);
-          }}
-          style={[
-            styles.turno,
-            { backgroundColor: COLOR_ESTADO[turno.estado] },
-            turnoSeleccionado === turno.id && styles.turnoElegido,
-          ]}>
-          <Text style={{ color: '#000' }}>
-            {dosDigitos(turno.hora)}:00 - {dosDigitos(turno.hora + 1)}:00 · {turno.estado}
-          </Text>
-        </Pressable>
-      )}
-      ListEmptyComponent={
-        <Text style={styles.vacio}>No quedan turnos para este día.</Text>
-      }
-      ListFooterComponent={
-        turnoSeleccionado ? (
-          <View style={{ marginTop: 16 }}>
-            <Boton
-              titulo={`Confirmar reserva de las ${dosDigitos(inicioDeTurno(turnoSeleccionado).getHours())}:00 hs`}
-              onPress={handleReservar}
-            />
-          </View>
-        ) : null
-      }
-    />
+              <View style={[styles.chip, { backgroundColor: tema.tint + '22' }]}><Text style={[styles.textoChip, { color: tema.tint }]}>{espacio.superficie}</Text></View>
+              <View style={[styles.chip, { backgroundColor: tema.tint + '22' }]}><Text style={[styles.textoChip, { color: tema.tint }]}>{espacio.techado ? 'Techada' : 'Al aire libre'}</Text></View>
+              {espacio.iluminacion && (
+                <View style={[styles.chip, { backgroundColor: tema.tint + '22' }]}><Text style={[styles.textoChip, { color: tema.tint }]}>Con luz</Text></View>
+              )}
+              <View style={[styles.chip, { backgroundColor: tema.tint + '22' }]}><Text style={[styles.textoChip, { color: tema.tint }]}>{espacio.capacidad} personas</Text></View>
+            </View>
+
+            <Text style={[styles.subtitulo, { color: tema.text }]}>Reglas del lugar</Text>
+            <Text style={[styles.reglas, { color: tema.text }]}>{espacio.reglas}</Text>
+
+            <View style={styles.selector}>
+              <Pressable onPress={() => cambiarDia(-1)} disabled={esPrimerDia} hitSlop={12}>
+                <View style={[styles.flechaIzq, esPrimerDia && styles.apagada]}>
+                  <Icono nombre="chevron" color={tema.tint} size={24} />
+                </View>
+              </Pressable>
+              <Text style={[styles.dia, { color: tema.tint }]}>{nombreDelDia(fecha, diaOffset)}</Text>
+              <Pressable onPress={() => cambiarDia(1)} disabled={esUltimoDia} hitSlop={12}>
+                <View style={esUltimoDia && styles.apagada}>
+                  <Icono nombre="chevron" color={tema.tint} size={24} />
+                </View>
+              </Pressable>
+            </View>
+          </>
+        }
+        renderItem={({ item: turno }) => (
+          <Pressable
+            disabled={turno.estado !== 'libre'}
+            onPress={() => {
+              vibrarToque();
+              setTurnoSeleccionado(turno.id);
+            }}
+            style={[
+              styles.turno,
+              { backgroundColor: COLOR_ESTADO[turno.estado] },
+                turnoSeleccionado === turno.id && { borderWidth: 3, borderColor: tema.tint },
+            ]}>
+            <Text style={{ color: '#000' }}>
+              {dosDigitos(turno.hora)}:00 - {dosDigitos(turno.hora + 1)}:00 · {turno.estado}
+            </Text>
+          </Pressable>
+        )}
+        ListEmptyComponent={
+          <Text style={[styles.vacio, { color: tema.tabIconDefault }]}>No quedan turnos para este día.</Text>
+        }
+        ListFooterComponent={
+          turnoSeleccionado ? (
+            <View style={{ marginTop: 16 }}>
+              <Boton
+                titulo={`Confirmar reserva de las ${dosDigitos(inicioDeTurno(turnoSeleccionado).getHours())}:00 hs`}
+                onPress={handleReservar}
+              />
+            </View>
+          ) : null
+        }
+      />
+    </>
   );
-}
+} 
 
 const styles = StyleSheet.create({
   titulo: { fontSize: 22, fontWeight: 'bold' },
@@ -276,12 +295,11 @@ const styles = StyleSheet.create({
     marginTop: 16,
     marginBottom: 8,
   },
-  dia: { fontSize: 16, fontWeight: 'bold', color: '#A4438C' },
+  dia: { fontSize: 16, fontWeight: 'bold' },
   flechaIzq: { transform: [{ rotate: '180deg' }] },
   apagada: { opacity: 0.25 },
   turno: { padding: 10, marginVertical: 4, borderRadius: 8 },
-  turnoElegido: { borderWidth: 3, borderColor: '#A4438C' },
-  vacio: { textAlign: 'center', color: '#999', marginTop: 24 },
+  vacio: { textAlign: 'center', marginTop: 24 },
   cargando: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   subtitulo: { fontFamily: 'Inter-Medium', fontSize: 15, marginTop: 16, marginBottom: 4 },
   reglas: { fontSize: 14, opacity: 0.8, lineHeight: 20 },
@@ -290,12 +308,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 3,
     borderRadius: 10,
-    backgroundColor: '#A4438C22',
     flexShrink: 0,
   },
   textoChip: {
     fontFamily: 'Inter-Medium',
     fontSize: 12,
-    color: '#A4438C',
   },
 });
