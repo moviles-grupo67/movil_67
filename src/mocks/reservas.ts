@@ -1,7 +1,28 @@
 import { Reserva } from '@/src/tipos/reserva';
+import { crearTurnoId } from '@/src/utils/turnos';
+
+const hoy = new Date();
+// Reserva de PRUEBA para el escáner: siempre cae en el día de hoy.
+const reservaDePruebaHoy: Reserva = {
+  id: 'res-prueba-hoy',
+  turnoId: crearTurnoId('esp-01', hoy, 19),
+  espacioId: 'esp-01',
+  usuarioId: 'usr-310',
+  cantidadPersonas: 6,
+  codigoQr: 'VGY-PRUEBA-HOY',
+  estado: 'confirmada',
+  ingresoEn: null,
+  creadaEn: new Date().toISOString(),
+  cancelableHasta: new Date(
+    hoy.getFullYear(),
+    hoy.getMonth(),
+    hoy.getDate(),
+    15,
+  ).toISOString(),
+};
 
 export const reservas: Reserva[] = [
-    {
+  {
     id: 'tur-esp-02-20260919-19',
     turnoId: 'tur-0219-19',
     espacioId: 'esp-02',
@@ -25,4 +46,5 @@ export const reservas: Reserva[] = [
     creadaEn: '2026-09-10T18:00:00-03:00',
     cancelableHasta: '2026-09-12T17:00:00-03:00',
   },
-]
+  reservaDePruebaHoy,
+];
