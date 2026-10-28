@@ -139,11 +139,23 @@ export default function FijasScreen() {
           </Text>
           <Text style={styles.texto}>{vigencia(item)}</Text>
           {item.activa ? (
-            <Boton
-              titulo="Desactivar"
-              variante="peligro"
-              onPress={() => pedirConfirmacion(item)}
-            />
+            <>
+              <Boton
+                titulo="Editar"
+                variante="secundario"
+                onPress={() =>
+                  router.push({
+                    pathname: '/gestion/fija-nueva',
+                    params: { id: item.id },
+                  })
+                }
+              />
+              <Boton
+                titulo="Desactivar"
+                variante="peligro"
+                onPress={() => pedirConfirmacion(item)}
+              />
+            </>
           ) : (
             <Text style={styles.etiquetaInactiva}>Desactivada</Text>
           )}

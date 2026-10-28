@@ -4,12 +4,16 @@ import { Text } from '@/components/Themed';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 import { obtenerEspacios } from '@/src/servicios/espacios';
-import { crearReservaFija } from '@/src/servicios/reservasFijas';
+import {
+  crearReservaFija,
+  editarReservaFija,
+  obtenerReservasFijas,
+} from '@/src/servicios/reservasFijas';
 import { esError } from '@/src/tipos/api';
 import { Espacio } from '@/src/tipos/espacio';
 import { ReservaFija } from '@/src/tipos/reservaFija';
 import { fechaISO } from '@/src/utils/turnos';
-import { useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet } from 'react-native';
 
@@ -17,6 +21,7 @@ const DIAS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
 export default function FijaNuevaScreen() {
   const router = useRouter();
+  const { id } = useLocalSearchParams<{ id?: string }>();
   const tema = Colors[useColorScheme() ?? 'light'];
 
   const [espacios, setEspacios] = useState<Espacio[]>([]);
@@ -34,7 +39,28 @@ export default function FijaNuevaScreen() {
     obtenerEspacios().then((r) => {
       if (!esError(r)) setEspacios(r.datos);
     });
-  }, []);
+
+    if (id) {
+      obtenerReservasFijas().then((r) => {
+        if (esError(r)) {
+          setError(r.error.mensaje);
+          return;
+        }
+        const f = r.datos.find((x) => x.id === id);
+        if (!f) {
+          setError('No encontramos esa reserva fija.');
+          return;
+        }
+        setEspacioId(f.espacioId);
+        setDia(f.dia);
+        setTitular(f.titular);
+        setInicio(f.inicio);
+        setFin(f.fin);
+        setDesde(f.desde);
+        setHasta(f.hasta ?? '');
+      });
+    }
+  }, [id]);
 
   async function guardar() {
     if (!espacioId || dia === null) {
@@ -44,7 +70,7 @@ export default function FijaNuevaScreen() {
     setGuardando(true);
     setError(null);
 
-    const respuesta = await crearReservaFija({
+    const datos = {
       espacioId,
       dia: dia as ReservaFija['dia'],
       titular,
@@ -52,7 +78,11 @@ export default function FijaNuevaScreen() {
       fin,
       desde,
       hasta: hasta.trim() === '' ? null : hasta,
-    });
+    };
+
+    const respuesta = id
+      ? await editarReservaFija(id, datos)
+      : await crearReservaFija(datos);
 
     setGuardando(false);
     if (esError(respuesta)) setError(respuesta.error.mensaje);
@@ -91,6 +121,9 @@ export default function FijaNuevaScreen() {
       contentContainerStyle={styles.contenido}
       keyboardShouldPersistTaps="handled"
     >
+      <Stack.Screen
+        options={{ title: id ? 'Editar reserva fija' : 'Nueva reserva fija' }}
+      />
       <Text style={styles.etiqueta}>Espacio</Text>
       <ScrollView
         horizontal
@@ -163,7 +196,7 @@ export default function FijaNuevaScreen() {
 
       {error && <Text style={styles.error}>{error}</Text>}
       <Boton
-        titulo="Guardar reserva fija"
+        titulo={id ? 'Guardar cambios' : 'Guardar reserva fija'}
         onPress={guardar}
         cargando={guardando}
       />
