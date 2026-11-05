@@ -49,6 +49,12 @@ export async function cancelarReserva(id: string): Promise<void> {
   );
 }
 
+export async function cancelarPorBloqueo(id: string): Promise<void> {
+  reservas = reservas.map((r) =>
+    r.id === id ? { ...r, estado: 'cancelada' } : r,
+  );
+}
+
 export async function crearReserva(datos: {
   espacioId: string;
   turnoId: string;

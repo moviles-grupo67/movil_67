@@ -5,6 +5,7 @@ import { obtenerEspacioPorId } from '@/src/servicios/espacios';
 import { esError } from '@/src/tipos/api';
 import { Espacio } from '@/src/tipos/espacio';
 import { crearReserva, obtenerTurnosOcupados } from '@/src/servicios/reservas';
+import { programarRecordatorioTurno } from '@/src/servicios/avisos';
 import { crearTurnoId, inicioDeTurno, textoTurno, CUATRO_HORAS } from '@/src/utils/turnos';
 import { vibrarExito, vibrarError, vibrarToque } from '@/src/servicios/vibracion';
 import { useLocalSearchParams, useRouter, useFocusEffect, Stack } from 'expo-router';
@@ -23,6 +24,7 @@ import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
 import { obtenerDeportes } from '@/src/servicios/deportes';
 import { Deporte } from '@/src/tipos/deporte';
+
 
 const DIAS_VISIBLES = 7;
 
@@ -57,7 +59,7 @@ const dosDigitos = (n: number) => String(n).padStart(2, '0');
 export default function DetalleEspacio() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
-  const { sesion } = useAuth();
+  const { sesion, alternarFavorito } = useAuth();
   const { width: anchoPantalla } = useWindowDimensions();
   const anchoMedio = anchoPantalla - 40;
   const progress = useSharedValue(0);
@@ -116,9 +118,13 @@ export default function DetalleEspacio() {
     setTurnoSeleccionado(null);
   }
 
-  async function confirmarReserva(usuarioId: string, espacioId: string, turnoId: string) {
+  async function confirmarReserva(usuarioId: string, espacioId: string, turnoId: string, nombreEspacio: string) {
     try {
       const reserva = await crearReserva({ espacioId, turnoId, usuarioId, cantidadPersonas: 1 });
+      const avisoProgramado = await programarRecordatorioTurno(reserva, nombreEspacio);
+      if (!avisoProgramado) {
+        alert('Reserva confirmada. No vas a recibir el recordatorio porque las notificaciones están desactivadas.');
+      }
       vibrarExito();
       router.back();
       router.push(
@@ -132,6 +138,7 @@ export default function DetalleEspacio() {
       }
     }
   }
+
 
   function handleReservar() {
     if (!turnoSeleccionado || !espacio) return;
@@ -155,13 +162,13 @@ export default function DetalleEspacio() {
         'Faltan menos de 4 horas. Si después no podés ir, vas a tener que avisar a la Dirección de Deportes.',
         [
           { text: 'Cancelar', style: 'cancel' },
-          { text: 'Continuar', onPress: () => confirmarReserva(usuarioId, espacioId, turnoId) },
+          { text: 'Continuar', onPress: () => confirmarReserva(usuarioId, espacioId, turnoId,espacio.nombre) },
         ]
       );
       return;
     }
 
-    confirmarReserva(usuarioId, espacioId, turnoId);
+    confirmarReserva(usuarioId, espacioId, turnoId, espacio.nombre);
   }
 
   const esPrimerDia = diaOffset === 0;
@@ -182,10 +189,37 @@ export default function DetalleEspacio() {
     ...(espacio.videoUrl ? [{ tipo: 'video' as const, url: espacio.videoUrl }] : []),
   ];
 
+  const esFavorito = sesion?.usuario.espaciosFavoritos.includes(espacio?.id ?? '') ?? false;
+
+    function handleFavorito() {
+      if (!espacio) return;
+      if (!sesion) {
+        router.push({
+          pathname: '/ingreso',
+          params: { resumen: `Marcar ${espacio.nombre} como favorito` },
+        });
+        return;
+      }
+      alternarFavorito(espacio.id);
+    }
 
   return (
     <>
-      <Stack.Screen options={{ title: espacio.nombre }} />
+      <Stack.Screen
+        options={{
+          title: espacio.nombre,
+          headerRight: () => (
+            <Pressable onPress={handleFavorito} hitSlop={12}>
+              <Icono
+                nombre="estrella"
+                color='#FFFFFF'
+                size={22}
+                relleno={esFavorito}
+              />
+            </Pressable>
+          ),
+        }}
+      />
       <FlatList
         data={turnos}
         keyExtractor={(turno) => turno.id}
