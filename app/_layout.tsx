@@ -1,13 +1,15 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useColorScheme } from '@/components/useColorScheme';
 import { AuthProvider } from '@/contexts/auth-context';
+import '@/src/servicios/avisos';
+import * as Notifications from 'expo-notifications';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -46,6 +48,17 @@ export default function RootLayout() {
 
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
+  const router = useRouter();
+
+  useEffect(() => {
+    const suscripcion = Notifications.addNotificationResponseReceivedListener((respuesta) => {
+      const { reservaId } = respuesta.notification.request.content.data as { reservaId?: string };
+      if (reservaId) {
+        router.push({ pathname: '/reservas/[id]', params: { id: reservaId } });
+      }
+    });
+    return () => suscripcion.remove();
+  }, [router]);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

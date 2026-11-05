@@ -6,13 +6,15 @@ import Colors from '@/constants/Colors';
 import { useAuth } from '@/contexts/auth-context';
 import { crearBloqueo } from '@/src/servicios/bloqueos';
 import { obtenerEspacios } from '@/src/servicios/espacios';
-import { obtenerReservasAfectadas } from '@/src/servicios/reservas';
+import { obtenerReservasAfectadas, cancelarPorBloqueo } from '@/src/servicios/reservas';
 import { esError } from '@/src/tipos/api';
 import { Espacio } from '@/src/tipos/espacio';
 import { fechaISO } from '@/src/utils/turnos';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Switch } from 'react-native';
+import { avisarReservasAfectadas } from '@/src/servicios/avisos';
+
 
 // Convierte el Alert (que funciona con callbacks) en algo que se puede "await".
 function confirmar(titulo: string, mensaje: string): Promise<boolean> {
@@ -87,6 +89,11 @@ export default function BloqueoNuevoScreen() {
 
     const respuesta = await crearBloqueo(datos, sesion.usuario.id);
 
+    if (!esError(respuesta) && afectadas.length > 0) {
+      await Promise.all(afectadas.map((a) => cancelarPorBloqueo(a.reserva.id)));
+      await avisarReservasAfectadas(afectadas, motivo);
+    }
+    
     setGuardando(false);
     if (esError(respuesta)) setError(respuesta.error.mensaje);
     else router.back();
