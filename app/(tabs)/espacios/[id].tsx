@@ -25,6 +25,7 @@ import { useColorScheme } from '@/components/useColorScheme';
 import { obtenerDeportes } from '@/src/servicios/deportes';
 import { Deporte } from '@/src/tipos/deporte';
 
+
 const DIAS_VISIBLES = 7;
 
 type Turno = { id: string; hora: number; estado: 'libre' | 'reservado' | 'fijo' | 'mantenimiento' };
@@ -58,7 +59,7 @@ const dosDigitos = (n: number) => String(n).padStart(2, '0');
 export default function DetalleEspacio() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
-  const { sesion } = useAuth();
+  const { sesion, alternarFavorito } = useAuth();
   const { width: anchoPantalla } = useWindowDimensions();
   const anchoMedio = anchoPantalla - 40;
   const progress = useSharedValue(0);
@@ -188,10 +189,37 @@ export default function DetalleEspacio() {
     ...(espacio.videoUrl ? [{ tipo: 'video' as const, url: espacio.videoUrl }] : []),
   ];
 
+  const esFavorito = sesion?.usuario.espaciosFavoritos.includes(espacio?.id ?? '') ?? false;
+
+    function handleFavorito() {
+      if (!espacio) return;
+      if (!sesion) {
+        router.push({
+          pathname: '/ingreso',
+          params: { resumen: `Marcar ${espacio.nombre} como favorito` },
+        });
+        return;
+      }
+      alternarFavorito(espacio.id);
+    }
 
   return (
     <>
-      <Stack.Screen options={{ title: espacio.nombre }} />
+      <Stack.Screen
+        options={{
+          title: espacio.nombre,
+          headerRight: () => (
+            <Pressable onPress={handleFavorito} hitSlop={12}>
+              <Icono
+                nombre="estrella"
+                color='#FFFFFF'
+                size={22}
+                relleno={esFavorito}
+              />
+            </Pressable>
+          ),
+        }}
+      />
       <FlatList
         data={turnos}
         keyExtractor={(turno) => turno.id}

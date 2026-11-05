@@ -6,6 +6,8 @@ import { iniciarSesion, obtenerSesionPorToken, registrarse } from '@/src/servici
 import { vibrarError, vibrarExito } from '@/src/servicios/vibracion';
 import { esError, Respuesta } from '@/src/tipos/api';
 import { Sesion, Usuario } from '@/src/tipos/usuario';
+import { alternarFavorito as alternarFavoritoServicio } from '@/src/servicios/usuarios';
+
 
 const guardarUsuario = (u: Usuario) => SecureStore.setItemAsync(CLAVE_USUARIO, JSON.stringify(u));
 const borrarTodo = async () => {
@@ -29,6 +31,8 @@ interface AuthContextValue {
   desactivarBiometria: () => Promise<void>;
   desbloquear: () => Promise<boolean>;
   salir: () => Promise<void>;
+  alternarFavorito: (espacioId: string) => Promise<void>;
+
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -134,6 +138,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return ok;
   }, [pendiente]);
 
+  const alternarFavorito = useCallback(
+    async (espacioId: string) => {
+      if (!sesion) return;
+      const favoritos = await alternarFavoritoServicio(sesion.usuario.id, espacioId);
+      const usuarioActualizado = { ...sesion.usuario, espaciosFavoritos: favoritos };
+      await guardarUsuario(usuarioActualizado);
+      setSesion({ ...sesion, usuario: usuarioActualizado });
+    },
+    [sesion]
+  );
+  
   const salir = useCallback(async () => {
     await borrarTodo();
     setBiometriaActivada(false);
@@ -153,6 +168,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       desactivarBiometria,
       desbloquear,
       salir,
+      alternarFavorito,
     }),
     [
       sesion,
@@ -165,6 +181,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       desactivarBiometria,
       desbloquear,
       salir,
+      alternarFavorito,
     ]
   );
 
