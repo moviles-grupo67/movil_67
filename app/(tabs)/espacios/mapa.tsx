@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { StyleSheet, View, Pressable } from 'react-native';
+import { StyleSheet, View, TouchableOpacity } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { obtenerEspacios } from '@/src/servicios/espacios';
@@ -8,6 +8,7 @@ import { Espacio } from '@/src/tipos/espacio';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 import { Icono } from '@/components/Icono';
+import { regionParaCoordenadas } from '@/src/utils/geo';
 
 const REGION_VILLAGUAY = {
   latitude: -31.8581,
@@ -28,6 +29,7 @@ export default function MapaScreen() {
   const [espacios, setEspacios] = useState<Espacio[]>([]);
   const [miUbicacion, setMiUbicacion] = useState<{ latitud: number; longitud: number } | null>(null);
   const mapRef = useRef<MapView>(null);
+
   useEffect(() => {
     obtenerEspacios().then((resultado) => {
       if (!esError(resultado)) {
@@ -35,6 +37,14 @@ export default function MapaScreen() {
       }
     });
   }, []);
+
+  useEffect(() => {
+    if (espacios.length === 0) return;
+    const region = regionParaCoordenadas(espacios.map((e) => e.coordenadas));
+    if (region) {
+      mapRef.current?.animateToRegion(region, 1000);
+    }
+  }, [espacios]);
 
   const complejos = Object.values(
     espacios.reduce((acc, espacio) => {
@@ -101,11 +111,13 @@ export default function MapaScreen() {
         )}
       </MapView>
 
-      <Pressable
+      <TouchableOpacity
         style={[styles.botonUbicacion, { backgroundColor: tema.surface }]}
+        activeOpacity={0.7}
         onPress={buscarMiUbicacion}>
         <Icono nombre="ubicacion" color={tema.tint} size={22} />
-      </Pressable>
+      </TouchableOpacity>
+      
     </View>
   );
 }
