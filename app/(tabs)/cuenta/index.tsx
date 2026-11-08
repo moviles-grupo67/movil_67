@@ -221,7 +221,7 @@ export default function CuentaScreen() {
         <RNView style={styles.cuerpo}>
           <Aparecer retraso={80} style={styles.identidad}>
             <Text style={styles.nombre}>{usuario.nombre}</Text>
-            <Text style={styles.usuario}>@{usuario.nombreUsuario}</Text>
+            <Text style={styles.usuario}>{usuario.email}</Text>
             <RNView style={[styles.chip, { backgroundColor: tema.tint + '22' }]}>
               <Text style={[styles.chipTexto, { color: tema.tint }]}>{NOMBRE_ROL[usuario.rol]}</Text>
             </RNView>
@@ -252,8 +252,8 @@ export default function CuentaScreen() {
             <Tarjeta style={[styles.fila, styles.separado]}>
               <IconoCirculo icono="huella" />
               <RNView style={styles.textos}>
-                <Text style={styles.filaTitulo}>Desbloqueo con huella</Text>
-                <Text style={styles.filaTexto}>Pedirla al abrir la app</Text>
+                <Text style={styles.filaTitulo}>Bloquear la app</Text>
+                <Text style={styles.filaTexto}>Pedir huella o PIN al abrirla</Text>
               </RNView>
               <Switch
                 value={biometriaActivada}

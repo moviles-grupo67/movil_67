@@ -36,13 +36,15 @@ export default function IngresoScreen() {
 
   const [creando, setCreando] = useState(params.modo === "crear");
   const [nombre, setNombre] = useState("");
-  const [usuario, setUsuario] = useState("");
+  const [email, setEmail] = useState("");
+  const [telefono, setTelefono] = useState("");
   const [contrasena, setContrasena] = useState("");
   const [verContrasena, setVerContrasena] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const usuarioRef = useRef<TextInput>(null);
+  const emailRef = useRef<TextInput>(null);
+  const telefonoRef = useRef<TextInput>(null);
   const contrasenaRef = useRef<TextInput>(null);
 
   const sacudida = useRef(new Animated.Value(0)).current;
@@ -81,15 +83,19 @@ export default function IngresoScreen() {
 
   async function enviar() {
     if (enviando) return;
-    if (!usuario.trim() || !contrasena || (creando && !nombre.trim())) {
+    if (
+      !email.trim() ||
+      !contrasena ||
+      (creando && (!nombre.trim() || !telefono.trim()))
+    ) {
       fallar("Completá todos los campos.");
       return;
     }
     setError(null);
     setEnviando(true);
     const mensaje = creando
-      ? await crearCuenta(nombre, usuario, contrasena)
-      : await ingresar(usuario, contrasena);
+      ? await crearCuenta({ nombre, email, telefono, contrasena })
+      : await ingresar(email, contrasena);
     setEnviando(false);
     if (mensaje) {
       fallar(mensaje);
@@ -177,7 +183,7 @@ export default function IngresoScreen() {
                   Tenés una sesión guardada en este dispositivo.
                 </Text>
                 <Boton
-                  titulo="Desbloquear con huella"
+                  titulo="Desbloquear con huella o PIN"
                   variante="secundario"
                   onPress={desbloquearYVolver}
                 />
@@ -195,25 +201,41 @@ export default function IngresoScreen() {
                   onChangeText={setNombre}
                   autoComplete="name"
                   returnKeyType="next"
-                  onSubmitEditing={() => usuarioRef.current?.focus()}
+                  onSubmitEditing={() => emailRef.current?.focus()}
                 />
               )}
               <CampoTexto
-                ref={usuarioRef}
-                icono="arroba"
-                placeholder="Usuario"
-                value={usuario}
-                onChangeText={setUsuario}
+                ref={emailRef}
+                icono="sobre"
+                placeholder="Email"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
-                autoComplete="username"
+                autoComplete="email"
                 returnKeyType="next"
-                onSubmitEditing={() => contrasenaRef.current?.focus()}
+                onSubmitEditing={() =>
+                  (creando ? telefonoRef : contrasenaRef).current?.focus()
+                }
               />
+              {creando && (
+                <CampoTexto
+                  ref={telefonoRef}
+                  icono="telefono"
+                  placeholder="Teléfono (ej. 3455-401122)"
+                  value={telefono}
+                  onChangeText={setTelefono}
+                  keyboardType="phone-pad"
+                  autoComplete="tel"
+                  returnKeyType="next"
+                  onSubmitEditing={() => contrasenaRef.current?.focus()}
+                />
+              )}
               <CampoTexto
                 ref={contrasenaRef}
                 icono="llave"
-                placeholder="Contraseña"
+                placeholder={creando ? "Contraseña (mínimo 8 caracteres)" : "Contraseña"}
                 value={contrasena}
                 onChangeText={setContrasena}
                 secureTextEntry={!verContrasena}
@@ -262,7 +284,7 @@ export default function IngresoScreen() {
 
             {__DEV__ && !creando && (
               <Text style={styles.pista}>
-                Prueba de loguin: jugador / 123456
+                Prueba de login: emiliano@mail.com / villaguay2026
               </Text>
             )}
           </Aparecer>
@@ -273,7 +295,7 @@ export default function IngresoScreen() {
         style={[styles.atras, { top: insets.top + 8 }]}
         onPress={volver}
         hitSlop={12}
-        accessibilityRole="button"
+        role="button"
         accessibilityLabel="Volver"
       >
         <Icono nombre="flecha" color={tema.text} size={24} />
