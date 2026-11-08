@@ -4,9 +4,11 @@ import { useState, useCallback, useEffect } from 'react';
 import { obtenerEspacioPorId } from '@/src/servicios/espacios';
 import { esError } from '@/src/tipos/api';
 import { Espacio } from '@/src/tipos/espacio';
-import { crearReserva, obtenerTurnosOcupados } from '@/src/servicios/reservas';
+import { crearReserva } from '@/src/servicios/reservas';
 import { programarRecordatorioTurno } from '@/src/servicios/avisos';
-import { crearTurnoId, inicioDeTurno, textoTurno, CUATRO_HORAS } from '@/src/utils/turnos';
+import { obtenerTurnos } from '@/src/servicios/turnos';
+import { Turno } from '@/src/tipos/turno';
+import { inicioDeTurno, textoTurno, CUATRO_HORAS } from '@/src/utils/turnos';
 import { vibrarExito, vibrarError, vibrarToque } from '@/src/servicios/vibracion';
 import { useLocalSearchParams, useRouter, useFocusEffect, Stack } from 'expo-router';
 import { Pressable, FlatList, StyleSheet, Text, Alert, View, useWindowDimensions } from 'react-native';
@@ -15,20 +17,12 @@ import { Image } from 'expo-image';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { Carousel, Pagination } from 'react-native-reanimated-carousel';// Libreria Carrousel
 import { useSharedValue } from 'react-native-reanimated'; // Libreria Carrousel
-import { obtenerBloqueos } from '@/src/servicios/bloqueos';
-import { obtenerReservasFijas } from '@/src/servicios/reservasFijas';
-import { Bloqueo } from '@/src/tipos/bloqueo';
-import { ReservaFija } from '@/src/tipos/reservaFija';
-import { estaBloqueado, esFijo } from '@/src/utils/disponibilidad';
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
 import { obtenerDeportes } from '@/src/servicios/deportes';
 import { Deporte } from '@/src/tipos/deporte';
 
-
 const DIAS_VISIBLES = 7;
-
-type Turno = { id: string; hora: number; estado: 'libre' | 'reservado' | 'fijo' | 'mantenimiento' };
 
 const COLOR_ESTADO = {
   libre: '#C8E6C9',
@@ -37,13 +31,10 @@ const COLOR_ESTADO = {
   mantenimiento: '#E0E0E0',
 };
 
-
-function generarTurnos(espacioId: string, fecha: Date): Turno[] {
-  const turnos: Turno[] = [];
-  for (let hora = 8; hora < 24; hora++) {
-    turnos.push({ id: crearTurnoId(espacioId, fecha, hora), hora, estado: 'libre' });
-  }
-  return turnos;
+function fechaDelOffset(diaOffset: number): Date {
+  const fecha = new Date();
+  fecha.setDate(fecha.getDate() + diaOffset);
+  return fecha;
 }
 
 function nombreDelDia(fecha: Date, diaOffset: number): string {
@@ -74,9 +65,9 @@ export default function DetalleEspacio() {
         if (!esError(r)) setDeportes(r.datos);
       });
     }, []);
-  const [ocupados, setOcupados] = useState<string[]>([]);
-  const [bloqueos, setBloqueos] = useState<Bloqueo[]>([]);
-  const [fijas, setFijas] = useState<ReservaFija[]>([]);
+  const [turnosApi, setTurnosApi] = useState<Turno[]>([]);
+  const [cargandoTurnos, setCargandoTurnos] = useState(true);
+  const [errorTurnos, setErrorTurnos] = useState<string | null>(null);
   const [diaOffset, setDiaOffset] = useState(0);
   const [turnoSeleccionado, setTurnoSeleccionado] = useState<string | null>(null);
   useEffect(() => {
@@ -86,32 +77,27 @@ export default function DetalleEspacio() {
       }
     });
   }, [id]);
-  useFocusEffect(
-    useCallback(() => {
-      obtenerTurnosOcupados(String(id)).then(setOcupados);
-      obtenerBloqueos({ espacioId: String(id) }).then((r) => {
-        if (!esError(r)) setBloqueos(r.datos);
-      });
-      obtenerReservasFijas({ espacioId: String(id), soloActivas: true }).then((r) => {
-        if (!esError(r)) setFijas(r.datos);
-      });
-    }, [id])
-  );
+  const cargarTurnos = useCallback(() => {
+    let cancelado = false;
+    setCargandoTurnos(true);
+    setErrorTurnos(null);
+    setTurnosApi([]);
+    obtenerTurnos(String(id), fechaDelOffset(diaOffset)).then((r) => {
+      if (cancelado) return;
+      if (esError(r)) setErrorTurnos(r.error.mensaje);
+      else setTurnosApi(r.datos);
+      setCargandoTurnos(false);
+    });
+    return () => {
+      cancelado = true;
+    };
+  }, [id, diaOffset]);
+  useFocusEffect(cargarTurnos);
 
-  const fecha = new Date();
-  fecha.setDate(fecha.getDate() + diaOffset);
+  const fecha = fechaDelOffset(diaOffset);
 
   const ahora = Date.now();
-  const turnos = espacio
-    ? generarTurnos(espacio.id, fecha)
-      .filter((t) => inicioDeTurno(t.id).getTime() > ahora)
-      .map((t): Turno => {
-        if (estaBloqueado(bloqueos, espacio.id, fecha, t.hora)) return { ...t, estado: 'mantenimiento' };
-        if (esFijo(fijas, espacio.id, fecha, t.hora)) return { ...t, estado: 'fijo' };
-        if (ocupados.includes(t.id)) return { ...t, estado: 'reservado' };
-        return t;
-      })
-    : [];
+  const turnos = turnosApi.filter((t) => inicioDeTurno(t.id).getTime() > ahora);
 
   function cambiarDia(delta: number) {
     setDiaOffset((d) => d + delta);
@@ -139,7 +125,6 @@ export default function DetalleEspacio() {
     }
   }
 
-
   function handleReservar() {
     if (!turnoSeleccionado || !espacio) return;
 
@@ -162,7 +147,7 @@ export default function DetalleEspacio() {
         'Faltan menos de 4 horas. Si después no podés ir, vas a tener que avisar a la Dirección de Deportes.',
         [
           { text: 'Cancelar', style: 'cancel' },
-          { text: 'Continuar', onPress: () => confirmarReserva(usuarioId, espacioId, turnoId,espacio.nombre) },
+          { text: 'Continuar', onPress: () => confirmarReserva(usuarioId, espacioId, turnoId, espacio.nombre) },
         ]
       );
       return;
@@ -298,12 +283,23 @@ export default function DetalleEspacio() {
                 turnoSeleccionado === turno.id && { borderWidth: 3, borderColor: tema.tint },
             ]}>
             <Text style={{ color: '#000' }}>
-              {dosDigitos(turno.hora)}:00 - {dosDigitos(turno.hora + 1)}:00 · {turno.estado}
+              {turno.inicio} - {turno.fin} · {turno.estado}
+              {turno.estado === 'libre' ? ` · $ ${turno.precio.toLocaleString('es-AR')}` : ''}
+              {turno.motivoBloqueo ? ` (${turno.motivoBloqueo})` : ''}
             </Text>
           </Pressable>
         )}
         ListEmptyComponent={
-          <Text style={[styles.vacio, { color: tema.tabIconDefault }]}>No quedan turnos para este día.</Text>
+          cargandoTurnos ? (
+            <Text style={[styles.vacio, { color: tema.tabIconDefault }]}>Cargando turnos...</Text>
+          ) : errorTurnos ? (
+            <View style={{ alignItems: 'center', gap: 12, marginTop: 24 }}>
+              <Text style={[styles.vacio, { color: tema.text, marginTop: 0 }]}>{errorTurnos}</Text>
+              <Boton titulo="Reintentar" variante="secundario" onPress={() => cargarTurnos()} />
+            </View>
+          ) : (
+            <Text style={[styles.vacio, { color: tema.tabIconDefault }]}>No quedan turnos para este día.</Text>
+          )
         }
         ListFooterComponent={
           turnoSeleccionado ? (
@@ -318,7 +314,7 @@ export default function DetalleEspacio() {
       />
     </>
   );
-} 
+}
 
 const styles = StyleSheet.create({
   titulo: { fontSize: 22, fontWeight: 'bold' },

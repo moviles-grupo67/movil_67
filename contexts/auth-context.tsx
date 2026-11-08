@@ -3,20 +3,18 @@ import * as SecureStore from 'expo-secure-store';
 
 import { autenticar, biometriaDisponible } from '@/src/servicios/biometria';
 import { iniciarSesion, obtenerSesionPorToken, registrarse } from '@/src/servicios/auth-service';
+import { CLAVE_TOKEN } from '@/src/servicios/cliente-api';
+import { alternarFavorito as alternarFavoritoServicio } from '@/src/servicios/usuarios';
 import { vibrarError, vibrarExito } from '@/src/servicios/vibracion';
 import { esError, Respuesta } from '@/src/tipos/api';
-import { Sesion, Usuario } from '@/src/tipos/usuario';
-import { alternarFavorito as alternarFavoritoServicio } from '@/src/servicios/usuarios';
-
+import { DatosRegistro, Sesion, Usuario } from '@/src/tipos/usuario';
 
 const guardarUsuario = (u: Usuario) => SecureStore.setItemAsync(CLAVE_USUARIO, JSON.stringify(u));
 const borrarTodo = async () => {
   await SecureStore.deleteItemAsync(CLAVE_TOKEN);
   await SecureStore.deleteItemAsync(CLAVE_USUARIO);
-  await SecureStore.deleteItemAsync(CLAVE_BIOMETRIA);
 };
 
-const CLAVE_TOKEN = 'sesion-token';
 const CLAVE_BIOMETRIA = 'biometria-activada';
 const CLAVE_USUARIO = 'sesion-usuario';
 
@@ -25,14 +23,13 @@ interface AuthContextValue {
   cargando: boolean;
   bloqueada: boolean;
   biometriaActivada: boolean;
-  ingresar: (nombreUsuario: string, contrasena: string) => Promise<string | null>;
-  crearCuenta: (nombre: string, nombreUsuario: string, contrasena: string) => Promise<string | null>;
+  ingresar: (email: string, contrasena: string) => Promise<string | null>;
+  crearCuenta: (datos: DatosRegistro) => Promise<string | null>;
   activarBiometria: () => Promise<string | null>;
   desactivarBiometria: () => Promise<void>;
   desbloquear: () => Promise<boolean>;
   salir: () => Promise<void>;
   alternarFavorito: (espacioId: string) => Promise<void>;
-
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -64,7 +61,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         if (!recuperada) return;
 
-        const activada = (await SecureStore.getItemAsync(CLAVE_BIOMETRIA)) === '1';
+        const activada =
+          (await SecureStore.getItemAsync(CLAVE_BIOMETRIA)) === recuperada.usuario.id;
         if (activada && (await biometriaDisponible())) {
           setBiometriaActivada(true);
           setPendiente(recuperada);
@@ -89,36 +87,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (esError(respuesta)) return respuesta.error.mensaje;
     await SecureStore.setItemAsync(CLAVE_TOKEN, respuesta.datos.token);
     await guardarUsuario(respuesta.datos.usuario);
-    await SecureStore.deleteItemAsync(CLAVE_BIOMETRIA);
-    setBiometriaActivada(false);
+    const idActivado = await SecureStore.getItemAsync(CLAVE_BIOMETRIA);
+    setBiometriaActivada(idActivado === respuesta.datos.usuario.id);
     setPendiente(null);
     setSesion(respuesta.datos);
     return null;
   }, []);
 
   const ingresar = useCallback(
-    async (nombreUsuario: string, contrasena: string) =>
-      guardarSesion(await iniciarSesion(nombreUsuario, contrasena)),
+    async (email: string, contrasena: string) =>
+      guardarSesion(await iniciarSesion(email, contrasena)),
     [guardarSesion]
   );
 
   const crearCuenta = useCallback(
-    async (nombre: string, nombreUsuario: string, contrasena: string) =>
-      guardarSesion(await registrarse(nombre, nombreUsuario, contrasena)),
+    async (datos: DatosRegistro) => guardarSesion(await registrarse(datos)),
     [guardarSesion]
   );
 
   const activarBiometria = useCallback(async () => {
+    if (!sesion) return 'Tenés que iniciar sesión primero.';
     if (!(await biometriaDisponible())) {
       return 'Este dispositivo no tiene huella ni bloqueo de pantalla configurado.';
     }
     if (!(await autenticar('Confirmá para activar el desbloqueo'))) {
       return 'No se pudo confirmar tu identidad.';
     }
-    await SecureStore.setItemAsync(CLAVE_BIOMETRIA, '1');
+    await SecureStore.setItemAsync(CLAVE_BIOMETRIA, sesion.usuario.id);
     setBiometriaActivada(true);
     return null;
-  }, []);
+  }, [sesion]);
 
   const desactivarBiometria = useCallback(async () => {
     await SecureStore.deleteItemAsync(CLAVE_BIOMETRIA);
@@ -148,7 +146,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     [sesion]
   );
-  
+
   const salir = useCallback(async () => {
     await borrarTodo();
     setBiometriaActivada(false);
@@ -185,7 +183,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     ]
   );
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return <AuthContext value={value}>{children}</AuthContext>;
 }
 
 export function useAuth() {
