@@ -70,10 +70,9 @@ export default function FijaNuevaScreen() {
     setGuardando(true);
     setError(null);
 
-    const datos = {
-      espacioId,
+    const cambios = {
       dia: dia as ReservaFija['dia'],
-      titular,
+      titular: titular.trim(),
       inicio,
       fin,
       desde,
@@ -81,9 +80,8 @@ export default function FijaNuevaScreen() {
     };
 
     const respuesta = id
-      ? await editarReservaFija(id, datos)
-      : await crearReservaFija(datos);
-
+      ? await editarReservaFija(id, cambios)
+      : await crearReservaFija({ espacioId, ...cambios });
     setGuardando(false);
     if (esError(respuesta)) setError(respuesta.error.mensaje);
     else router.back();
@@ -135,9 +133,16 @@ export default function FijaNuevaScreen() {
             key={e.id}
             texto={e.nombre}
             elegido={espacioId === e.id}
-            onPress={() => setEspacioId(e.id)}
+            onPress={() => {
+              if (!id) setEspacioId(e.id);
+            }}
           />
         ))}
+        {id && (
+          <Text style={styles.texto}>
+            El espacio no se puede modificar al editar una reserva fija.
+          </Text>
+        )}
       </ScrollView>
 
       <Text style={styles.etiqueta}>Día de la semana</Text>
@@ -210,4 +215,5 @@ const styles = StyleSheet.create({
   chips: { gap: 8, paddingVertical: 4 },
   chip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16 },
   error: { color: '#D32F2F', fontSize: 14, textAlign: 'center' },
+  texto: { fontSize: 12, opacity: 0.65 },
 });

@@ -32,7 +32,7 @@ export default function EscanearScreen() {
 
   const [espacios, setEspacios] = useState<Espacio[]>([]);
   const [errorEspacios, setErrorEspacios] = useState<string | null>(null);
-  const [complejo, setComplejo] = useState<string | null>(null);
+  const [espacio, setEspacio] = useState<Espacio | null>(null);
   const [procesando, setProcesando] = useState(false);
   const [resultado, setResultado] = useState<Resultado | null>(null);
   const ocupado = useRef(false);
@@ -64,11 +64,12 @@ export default function EscanearScreen() {
   const complejos = Array.from(new Set(espacios.map((e) => e.complejo)));
 
   async function alEscanear(codigo: string) {
-    if (!complejo || ocupado.current) return;
+    if (!espacio || ocupado.current) return;
     ocupado.current = true;
     setProcesando(true);
 
-    const respuesta = await registrarIngreso(codigo, complejo);
+    const respuesta = await registrarIngreso(codigo, espacio);
+    setProcesando(false);
     if (esError(respuesta)) {
       vibrarError();
     } else {
@@ -83,6 +84,7 @@ export default function EscanearScreen() {
 
   function escanearOtro() {
     setResultado(null);
+    setProcesando(false);
     ocupado.current = false;
   }
 
@@ -143,33 +145,34 @@ export default function EscanearScreen() {
     );
   }
 
-  if (!complejo) {
+  if (!espacio) {
     return (
       <View style={styles.contenedor}>
         <ScrollView contentContainerStyle={styles.lista}>
-          <Text style={styles.titulo}>¿En qué complejo estás?</Text>
+          <Text style={styles.titulo}>¿En qué cancha estás?</Text>
           <Text style={styles.texto}>
-            Vas a poder escanear las reservas de todas sus canchas.
+            Elegí el espacio de la puerta donde vas a escanear.
           </Text>
           {errorEspacios && <Text style={styles.texto}>{errorEspacios}</Text>}
-          {complejos.map((nombre) => {
-            const cantidad = espacios.filter(
-              (e) => e.complejo === nombre,
-            ).length;
-            return (
-              <Pressable
-                key={nombre}
-                onPress={() => setComplejo(nombre)}
-                accessibilityRole="button"
-                style={styles.opcion}
-              >
-                <Text style={styles.nombreEspacio}>{nombre}</Text>
-                <Text style={styles.texto}>
-                  {cantidad} {cantidad === 1 ? 'espacio' : 'espacios'}
-                </Text>
-              </Pressable>
-            );
-          })}
+          {complejos.map((nombre) => (
+            <View key={nombre} style={styles.grupo}>
+              <Text style={styles.nombreComplejo}>
+                {nombre === '—' ? 'Otros espacios' : nombre}
+              </Text>
+              {espacios
+                .filter((e) => e.complejo === nombre)
+                .map((e) => (
+                  <Pressable
+                    key={e.id}
+                    onPress={() => setEspacio(e)}
+                    accessibilityRole="button"
+                    style={styles.opcion}
+                  >
+                    <Text style={styles.nombreEspacio}>{e.nombre}</Text>
+                  </Pressable>
+                ))}
+            </View>
+          ))}
         </ScrollView>
       </View>
     );
@@ -178,10 +181,10 @@ export default function EscanearScreen() {
   return (
     <View style={styles.contenedor}>
       <View style={styles.barra}>
-        <Text style={styles.nombreEspacio}>{complejo}</Text>
+        <Text style={styles.nombreEspacio}>{espacio?.nombre}</Text>
         <Pressable
           onPress={() => {
-            setComplejo(null);
+            setEspacio(null);
             escanearOtro();
           }}
         >
@@ -285,4 +288,6 @@ const styles = StyleSheet.create({
   },
   textoResultado: { fontSize: 15, textAlign: 'center', color: '#FFFFFF' },
   textoError: { fontSize: 14, textAlign: 'center', color: '#D32F2F' },
+  grupo: { gap: 8 },
+  nombreComplejo: { fontSize: 14, fontWeight: '700', opacity: 0.7 },
 });
