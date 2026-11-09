@@ -8,7 +8,7 @@ import { Espacio } from '@/src/tipos/espacio';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 import { Icono } from '@/components/Icono';
-import { regionParaCoordenadas } from '@/src/utils/geo';
+import { regionParaCoordenadas, distanciaKm } from '@/src/utils/geo';
 
 const REGION_VILLAGUAY = {
   latitude: -31.8581,
@@ -61,7 +61,7 @@ export default function MapaScreen() {
     }, {} as Record<string, Complejo>)
   );
 
-    async function buscarMiUbicacion() {
+  async function buscarMiUbicacion() {
     const { status } = await Location.requestForegroundPermissionsAsync();
     console.log('Estado del permiso de ubicación:', status);
     if (status !== 'granted') return;
@@ -89,7 +89,14 @@ export default function MapaScreen() {
     } catch (error) {
       console.log('No se pudo obtener la ubicación:', error);
     }
-  } 
+  }
+
+  function descripcionDe(complejo: Complejo): string {
+    const espacios = `${complejo.cantidadEspacios} espacio${complejo.cantidadEspacios > 1 ? 's' : ''}`;
+    if (!miUbicacion) return espacios;
+    const km = distanciaKm(miUbicacion, { latitud: complejo.latitud, longitud: complejo.longitud });
+    return `${espacios} · ${km.toFixed(1)} km`;
+  }
 
   return (
     <View style={styles.contenedor}>
@@ -99,7 +106,7 @@ export default function MapaScreen() {
             key={complejo.nombre}
             coordinate={{ latitude: complejo.latitud, longitude: complejo.longitud }}
             title={complejo.nombre}
-            description={`${complejo.cantidadEspacios} espacio${complejo.cantidadEspacios > 1 ? 's' : ''}`}
+            description={descripcionDe(complejo)}
           />
         ))}
         {miUbicacion && (
@@ -117,7 +124,6 @@ export default function MapaScreen() {
         onPress={buscarMiUbicacion}>
         <Icono nombre="ubicacion" color={tema.tint} size={22} />
       </TouchableOpacity>
-      
     </View>
   );
 }

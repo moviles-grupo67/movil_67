@@ -1,17 +1,29 @@
-import { usuariosMock } from '@/src/mocks/usuarios'; // Luego cambiamos por la API real
+import { pedir } from '@/src/servicios/cliente-api';
+import { esError } from '@/src/tipos/api';
+import { Usuario } from '@/src/tipos/usuario';
 
 export async function obtenerNombreUsuario(id: string): Promise<string> {
-  return usuariosMock.find((u) => u.id === id)?.nombre ?? 'Usuario desconocido';
+  const respuesta = await pedir<Usuario>({ method: 'GET', url: `/usuarios/${id}` });
+  return esError(respuesta) ? 'Usuario desconocido' : respuesta.datos.nombre;
 }
 
-export async function alternarFavorito(usuarioId: string, espacioId: string): Promise<string[]> {
-  const usuario = usuariosMock.find((u) => u.id === usuarioId);
-  if (!usuario) return [];
+export async function alternarFavorito(
+  espacioId: string,
+  favoritosActuales: string[],
+): Promise<string[]> {
+  const yaEsFavorito = favoritosActuales.includes(espacioId);
 
-  const yaEsFavorito = usuario.espaciosFavoritos.includes(espacioId);
-  usuario.espaciosFavoritos = yaEsFavorito
-    ? usuario.espaciosFavoritos.filter((id) => id !== espacioId)
-    : [...usuario.espaciosFavoritos, espacioId];
+  if (yaEsFavorito) {
+    const respuesta = await pedir<void>({
+      method: 'DELETE',
+      url: `/yo/espacios-favoritos/${espacioId}`,
+    });
+    return esError(respuesta) ? favoritosActuales : favoritosActuales.filter((id) => id !== espacioId);
+  }
 
-  return usuario.espaciosFavoritos;
+  const respuesta = await pedir<Usuario>({
+    method: 'PUT',
+    url: `/yo/espacios-favoritos/${espacioId}`,
+  });
+  return esError(respuesta) ? favoritosActuales : respuesta.datos.espaciosFavoritos;
 }

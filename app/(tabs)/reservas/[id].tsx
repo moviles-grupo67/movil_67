@@ -1,12 +1,15 @@
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import QRCode from 'react-native-qrcode-svg';
-import { espacios } from '@/src/mocks/espacios';
+import { obtenerEspacioPorId } from '@/src/servicios/espacios';
+import { esError } from '@/src/tipos/api';
+import { Espacio } from '@/src/tipos/espacio';
 import { useRouter } from 'expo-router';
 import { cancelarReserva } from '@/src/servicios/reservas';
 import { obtenerReservaPorId } from '@/src/servicios/reservas';
 import { useEffect, useState } from 'react';
 import { Reserva } from '@/src/tipos/reserva';
+import { cancelarRecordatorioTurno } from '@/src/servicios/avisos';
 import { textoTurno, textoHora, textoDia } from '@/src/utils/turnos';
 import { vibrarExito, vibrarError } from '@/src/servicios/vibracion';
 import { Boton } from '@/components/Boton';
@@ -15,12 +18,18 @@ export default function DetalleReserva() {
     const { id } = useLocalSearchParams();
 
     const [reserva, setReserva] = useState<Reserva | undefined>(undefined);
+    const [espacio, setEspacio] = useState<Espacio | undefined>(undefined);
 
+    useEffect(() => {
+        if (!reserva) return;
+        obtenerEspacioPorId(reserva.espacioId).then((r) => {
+            if (!esError(r)) setEspacio(r.datos);
+        });
+    }, [reserva]);
     useEffect(() => {
         obtenerReservaPorId(String(id)).then(setReserva);
     }, [id]);
 
-    const espacio = espacios.find((e) => e.id === reserva?.espacioId);
     const hasta = reserva ? new Date(reserva.cancelableHasta) : null;
     const horaLimite = hasta ? textoHora(hasta) : '';
     const sePuedeCancelar = hasta ? new Date() <= hasta : false;
@@ -34,6 +43,7 @@ export default function DetalleReserva() {
         if (!reserva) return;
         try {
             await cancelarReserva(reserva.id);
+            await cancelarRecordatorioTurno(reserva.id);
             vibrarExito();
             router.back();
         } catch (err) {

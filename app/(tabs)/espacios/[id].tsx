@@ -107,10 +107,12 @@ export default function DetalleEspacio() {
   async function confirmarReserva(usuarioId: string, espacioId: string, turnoId: string, nombreEspacio: string) {
     try {
       const reserva = await crearReserva({ espacioId, turnoId, usuarioId, cantidadPersonas: 1 });
-      const avisoProgramado = await programarRecordatorioTurno(reserva, nombreEspacio);
-      if (!avisoProgramado) {
+      const resultadoAviso = await programarRecordatorioTurno(reserva, nombreEspacio);
+      if (resultadoAviso === 'sin_permiso') {
         alert('Reserva confirmada. No vas a recibir el recordatorio porque las notificaciones están desactivadas.');
-      }
+      } else if (resultadoAviso === 'turno_cercano') {
+        alert('Reserva confirmada. Faltan menos de 2 horas para el turno, así que no llega a avisarte antes — pero la reserva quedó hecha igual.');
+      };
       vibrarExito();
       router.back();
       router.push(

@@ -40,17 +40,19 @@ export async function pedirPermisoAvisos(): Promise<boolean> {
   return pedido.status === 'granted';
 }
 
+export type ResultadoRecordatorio = 'programado' | 'sin_permiso' | 'turno_cercano';
+
 export async function programarRecordatorioTurno(
   reserva: Reserva,
   nombreEspacio: string
-): Promise<boolean> {
+): Promise<ResultadoRecordatorio> {
   const tienePermiso = await pedirPermisoAvisos();
-  if (!tienePermiso) return false;
+  if (!tienePermiso) return 'sin_permiso';
 
   const inicioTurno = inicioDeTurno(reserva.turnoId);
   const disparo = new Date(inicioTurno.getTime() - DOS_HORAS);
 
-  if (disparo.getTime() <= Date.now()) return false;
+  if (disparo.getTime() <= Date.now()) return 'turno_cercano';
 
   const id = await Notifications.scheduleNotificationAsync({
     content: {
@@ -65,8 +67,9 @@ export async function programarRecordatorioTurno(
   });
 
   idsPorReserva.set(reserva.id, id);
-  return true;
+  return 'programado';
 }
+
 
 export async function cancelarRecordatorioTurno(reservaId: string): Promise<void> {
   const id = idsPorReserva.get(reservaId);

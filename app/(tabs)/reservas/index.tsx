@@ -1,9 +1,11 @@
 import { View, StyleSheet, Pressable, Animated, FlatList } from 'react-native';
 import { Text } from '@/components/Themed';
 import { Icono } from '@/components/Icono';
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { obtenerReservas } from '@/src/servicios/reservas';
-import { espacios } from '@/src/mocks/espacios';
+import { obtenerEspacios } from '@/src/servicios/espacios';
+import { esError } from '@/src/tipos/api';
+import { Espacio } from '@/src/tipos/espacio';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Reserva } from '@/src/tipos/reserva';
 import { useAuth } from '@/contexts/auth-context';
@@ -23,6 +25,13 @@ const NOMBRE_ESTADO = {
 export default function ReservasScreen() {
 
   const [reservas, setReservas] = useState<Reserva[]>([]);
+  const [espacios, setEspacios] = useState<Espacio[]>([]);
+
+  useEffect(() => {
+    obtenerEspacios().then((r) => {
+      if (!esError(r)) setEspacios(r.datos);
+    });
+  }, []);
   const { sesion } = useAuth();
   const router = useRouter();
   const tema = Colors[useColorScheme() ?? 'light'];

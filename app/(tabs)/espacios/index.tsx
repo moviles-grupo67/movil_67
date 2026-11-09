@@ -1,4 +1,4 @@
-import { StyleSheet, FlatList, Pressable, View, Modal } from 'react-native';
+import { StyleSheet, FlatList, Pressable, View, Modal, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { obtenerEspacios } from '@/src/servicios/espacios';
@@ -62,19 +62,20 @@ export default function EspaciosScreen() {
         contentContainerStyle={styles.lista}
         ListHeaderComponent={
           <View style={styles.filaBotones}>
-            <Pressable style={[styles.botonFiltro, { borderColor: tema.tint + '33' }]} onPress={() => setFiltrosVisibles(true)}>
-              <Icono nombre="filtro" color={tema.tint} size={18} />
-              <Text style={[styles.textoBotonFiltro, { color: tema.tint }]}>
+            <TouchableOpacity style={[styles.botonFiltro, { backgroundColor: tema.tint }]} activeOpacity={0.7} onPress={() => setFiltrosVisibles(true)}>
+              <Icono nombre="filtro" color="#FFFFFF" size={18} />
+              <Text style={styles.textoBotonFiltro}>
                 Filtros{cantidadFiltrosActivos > 0 ? ` (${cantidadFiltrosActivos})` : ''}
               </Text>
-            </Pressable>
+            </TouchableOpacity>
 
-            <Pressable style={[styles.botonFiltro, { borderColor: tema.tint + '33' }]} onPress={() => router.push('/espacios/mapa')}>
-              <Icono nombre="ubicacion" color={tema.tint} size={18} />
-              <Text style={[styles.textoBotonFiltro, { color: tema.tint }]}>Mapa</Text>
-            </Pressable>
+            <TouchableOpacity style={[styles.botonFiltro, { backgroundColor: tema.tint }]} activeOpacity={0.7} onPress={() => router.push('/espacios/mapa')}>
+              <Icono nombre="ubicacion" color="#FFFFFF" size={18} />
+              <Text style={styles.textoBotonFiltro}>Mapa</Text>
+            </TouchableOpacity>
           </View>
         }
+        
         renderItem={({ item: espacio }) => {
           const deporte = deportes.find((d) => d.id === espacio.deporteId);
           return (
@@ -231,8 +232,7 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
+    borderRadius: 999,
   },
   filaBotones: {
     flexDirection: 'row',
@@ -240,7 +240,7 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 16,
   },
-  textoBotonFiltro: { fontFamily: 'Inter-Medium', fontSize: 13 },
+  textoBotonFiltro: { fontFamily: 'Inter-Medium', fontSize: 13, color: '#FFFFFF' },
   fondoModal: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   panelFiltros: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 32 },
   tituloFiltros: { fontFamily: 'Inter-Medium', fontSize: 15, marginBottom: 8, marginTop: 12 },
