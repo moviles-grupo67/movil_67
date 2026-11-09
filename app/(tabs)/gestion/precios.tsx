@@ -3,6 +3,8 @@ import { CampoTexto } from '@/components/CampoTexto';
 import { Text, View } from '@/components/Themed';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
+import { useAuth } from '@/contexts/auth-context';
+import { esAdmin } from '@/src/dominio/permisos';
 import { actualizarPrecio, obtenerEspacios } from '@/src/servicios/espacios';
 import { esError } from '@/src/tipos/api';
 import { Espacio } from '@/src/tipos/espacio';
@@ -54,6 +56,7 @@ function FilaPrecio({ espacio }: { espacio: Espacio }) {
 
 export default function PreciosScreen() {
   const tema = Colors[useColorScheme() ?? 'light'];
+  const admin = esAdmin(useAuth().sesion?.usuario.rol);
   const [espacios, setEspacios] = useState<Espacio[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -65,6 +68,14 @@ export default function PreciosScreen() {
       setCargando(false);
     });
   }, []);
+
+  if (!admin) {
+    return (
+      <View style={styles.centro}>
+        <Text>Solo el administrador puede cambiar los precios.</Text>
+      </View>
+    );
+  }
 
   if (cargando) {
     return (

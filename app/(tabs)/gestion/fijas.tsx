@@ -2,6 +2,8 @@ import { Boton } from '@/components/Boton';
 import { Text, View } from '@/components/Themed';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
+import { useAuth } from '@/contexts/auth-context';
+import { esAdmin } from '@/src/dominio/permisos';
 import { obtenerEspacios } from '@/src/servicios/espacios';
 import {
   desactivarReservaFija,
@@ -28,6 +30,7 @@ const DIAS = [
 export default function FijasScreen() {
   const tema = Colors[useColorScheme() ?? 'light'];
   const router = useRouter();
+  const puedeEditar = esAdmin(useAuth().sesion?.usuario.rol);
   const [fijas, setFijas] = useState<ReservaFija[]>([]);
   const [espacios, setEspacios] = useState<Espacio[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -82,11 +85,14 @@ export default function FijasScreen() {
 
   async function desactivar(id: string) {
     const r = await desactivarReservaFija(id);
-    if (esError(r)) Alert.alert('No se pudo desactivar', r.error.mensaje);
-    else
+
+    if (esError(r)) {
+      Alert.alert('No se pudo desactivar', r.error.mensaje);
+    } else {
       setFijas((actuales) =>
-        actuales.map((f) => (f.id === id ? { ...r.datos } : f)),
+        actuales.map((f) => (f.id === id ? { ...f, activa: false } : f)),
       );
+    }
   }
 
   if (cargando) {
@@ -115,10 +121,12 @@ export default function FijasScreen() {
         <Text style={styles.texto}>No hay reservas fijas cargadas.</Text>
       }
       ListHeaderComponent={
-        <Boton
-          titulo="Nueva reserva fija"
-          onPress={() => router.push('/gestion/fija-nueva')}
-        />
+        puedeEditar ? (
+          <Boton
+            titulo="Nueva reserva fija"
+            onPress={() => router.push('/gestion/fija-nueva')}
+          />
+        ) : null
       }
       renderItem={({ item }) => (
         <View
@@ -134,11 +142,11 @@ export default function FijasScreen() {
           <Text style={styles.titulo}>{item.titular}</Text>
           <Text style={styles.texto}>{nombreEspacio(item.espacioId)}</Text>
           <Text style={styles.texto}>
-            Todos los {DIAS[item.dia].toLowerCase()}s · {item.inicio} a{' '}
+            Todos los {DIAS[item.dia].toLowerCase()} · {item.inicio} a{' '}
             {item.fin} hs
           </Text>
           <Text style={styles.texto}>{vigencia(item)}</Text>
-          {item.activa ? (
+          {item.activa && puedeEditar ? (
             <>
               <Boton
                 titulo="Editar"
@@ -156,9 +164,9 @@ export default function FijasScreen() {
                 onPress={() => pedirConfirmacion(item)}
               />
             </>
-          ) : (
+          ) : !item.activa ? (
             <Text style={styles.etiquetaInactiva}>Desactivada</Text>
-          )}
+          ) : null}
         </View>
       )}
     />

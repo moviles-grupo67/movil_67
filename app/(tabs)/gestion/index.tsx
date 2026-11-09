@@ -3,6 +3,7 @@ import { Text, View } from '@/components/Themed';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 import { useAuth } from '@/contexts/auth-context';
+import { esAdmin } from '@/src/dominio/permisos';
 import { Href, useRouter } from 'expo-router';
 import {
   Pressable,
@@ -16,6 +17,7 @@ interface Seccion {
   descripcion: string;
   icono: NombreIcono;
   ruta: Href;
+  soloAdmin?: boolean;
 }
 
 const SECCIONES: Seccion[] = [
@@ -48,6 +50,7 @@ const SECCIONES: Seccion[] = [
     descripcion: 'Precio por hora de cada espacio',
     icono: 'llave',
     ruta: '/gestion/precios',
+    soloAdmin: true,
   },
 ];
 
@@ -62,7 +65,9 @@ export default function GestionScreen() {
         <Text style={styles.saludo}>Hola, {sesion?.usuario.nombre}</Text>
         <Text style={styles.subtitulo}>¿Qué querés gestionar?</Text>
 
-        {SECCIONES.map((seccion) => (
+        {SECCIONES.filter(
+          (s) => !s.soloAdmin || esAdmin(sesion?.usuario.rol),
+        ).map((seccion) => (
           <Pressable
             key={seccion.titulo}
             onPress={() => router.push(seccion.ruta)}

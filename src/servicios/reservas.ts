@@ -1,11 +1,8 @@
 import { reservas as reservasMock } from '@/src/mocks/reservas';
 import { pedir } from '@/src/servicios/cliente-api';
-import { obtenerNombreUsuario } from '@/src/servicios/usuarios';
-import { esError } from '@/src/tipos/api';
-import { Bloqueo } from '@/src/tipos/bloqueo';
+import { esError, Respuesta } from '@/src/tipos/api';
 import { Reserva } from '@/src/tipos/reserva';
-import { estaBloqueado } from '@/src/utils/disponibilidad';
-import { fechaISO, inicioDeTurno, textoHora } from '@/src/utils/turnos';
+import { fechaISO, inicioDeTurno } from '@/src/utils/turnos';
 
 let reservas: Reserva[] = [...reservasMock];
 
@@ -119,37 +116,10 @@ export interface ReservaAfectada {
   hora: string;
 }
 
-export async function obtenerReservasAfectadas(datos: {
-  espacioId: string;
-  fecha: string;
-  inicio: string | null;
-  fin: string | null;
-}): Promise<ReservaAfectada[]> {
-  const bloqueoPrueba: Bloqueo = {
-    ...datos,
-    id: '',
-    motivo: '',
-    creadoPor: '',
-    creadoEn: '',
-  };
-
-  const coinciden = reservas.filter((r) => {
-    if (r.estado !== 'confirmada' || r.espacioId !== datos.espacioId)
-      return false;
-    const inicioTurno = inicioDeTurno(r.turnoId);
-    return estaBloqueado(
-      [bloqueoPrueba],
-      r.espacioId,
-      inicioTurno,
-      inicioTurno.getHours(),
-    );
+export function marcarAusente(id: string): Promise<Respuesta<Reserva>> {
+  return pedir<Reserva>({
+    method: 'POST',
+    url: `/reservas/${id}/ausente`,
+    data: {},
   });
-
-  return Promise.all(
-    coinciden.map(async (reserva) => ({
-      reserva,
-      nombreUsuario: await obtenerNombreUsuario(reserva.usuarioId),
-      hora: textoHora(inicioDeTurno(reserva.turnoId)),
-    })),
-  );
 }
