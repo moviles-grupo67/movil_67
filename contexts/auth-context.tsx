@@ -139,7 +139,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const alternarFavorito = useCallback(
     async (espacioId: string) => {
       if (!sesion) return;
-      const favoritos = await alternarFavoritoServicio(sesion.usuario.id, espacioId);
+      const favoritos = await alternarFavoritoServicio(espacioId, sesion.usuario.espaciosFavoritos);
       const usuarioActualizado = { ...sesion.usuario, espaciosFavoritos: favoritos };
       await guardarUsuario(usuarioActualizado);
       setSesion({ ...sesion, usuario: usuarioActualizado });
