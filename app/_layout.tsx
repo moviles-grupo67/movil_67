@@ -12,7 +12,6 @@ import '@/src/servicios/avisos';
 import * as Notifications from 'expo-notifications';
 
 export {
-  // Catch any errors thrown by the Layout component.
   ErrorBoundary,
 } from 'expo-router';
 
@@ -52,7 +51,7 @@ function RootLayoutNav() {
 
   useEffect(() => {
     const suscripcion = Notifications.addNotificationResponseReceivedListener((respuesta) => {
-      const { reservaId } = respuesta.notification.request.content.data as { reservaId?: string };
+      const reservaId = respuesta.notification.request.content.data?.reservaId as string | undefined;
       if (reservaId) {
         router.push({ pathname: '/reservas/[id]', params: { id: reservaId } });
       }

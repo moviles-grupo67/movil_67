@@ -1,13 +1,16 @@
 import { useEffect, useState, useRef } from 'react';
-import { StyleSheet, View, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, TouchableOpacity, Linking } from 'react-native';
+import { Text } from '@/components/Themed';
 import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
+import { useRouter } from 'expo-router';
 import { obtenerEspacios } from '@/src/servicios/espacios';
 import { esError } from '@/src/tipos/api';
 import { Espacio } from '@/src/tipos/espacio';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 import { Icono } from '@/components/Icono';
+import { Boton } from '@/components/Boton';
 import { regionParaCoordenadas, distanciaKm } from '@/src/utils/geo';
 
 const REGION_VILLAGUAY = {
@@ -28,7 +31,9 @@ export default function MapaScreen() {
   const tema = Colors[useColorScheme() ?? 'light'];
   const [espacios, setEspacios] = useState<Espacio[]>([]);
   const [miUbicacion, setMiUbicacion] = useState<{ latitud: number; longitud: number } | null>(null);
+  const [complejoSeleccionado, setComplejoSeleccionado] = useState<Complejo | null>(null);
   const mapRef = useRef<MapView>(null);
+  const router = useRouter();
 
   useEffect(() => {
     obtenerEspacios().then((resultado) => {
@@ -46,6 +51,7 @@ export default function MapaScreen() {
     }
   }, [espacios]);
 
+  // Agrupa los espacios por complejo
   const complejos = Object.values(
     espacios.reduce((acc, espacio) => {
       if (!acc[espacio.complejo]) {
@@ -61,6 +67,7 @@ export default function MapaScreen() {
     }, {} as Record<string, Complejo>)
   );
 
+  // Pide permiso de ubicación y centra el mapa en la posición actual del usuario.
   async function buscarMiUbicacion() {
     const { status } = await Location.requestForegroundPermissionsAsync();
     console.log('Estado del permiso de ubicación:', status);
@@ -91,6 +98,7 @@ export default function MapaScreen() {
     }
   }
 
+  // Agrega la distancia en km una vez que ya sabemos dónde está el usuario.
   function descripcionDe(complejo: Complejo): string {
     const espacios = `${complejo.cantidadEspacios} espacio${complejo.cantidadEspacios > 1 ? 's' : ''}`;
     if (!miUbicacion) return espacios;
@@ -98,25 +106,51 @@ export default function MapaScreen() {
     return `${espacios} · ${km.toFixed(1)} km`;
   }
 
+  // Abre Google Maps con la ruta hasta ese complejo.
+  function abrirComoLlegar(complejo: Complejo) {
+    Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${complejo.latitud},${complejo.longitud}`);
+  }
+
+  // Lleva a la lista de espacios con el filtro de este complejo ya aplicado.
+  function irAReservar(complejo: Complejo) {
+    router.push({ pathname: '/espacios', params: { complejo: complejo.nombre } });
+  }
+
   return (
     <View style={styles.contenedor}>
-      <MapView ref={mapRef} style={styles.mapa} initialRegion={REGION_VILLAGUAY}>
+      <MapView
+        ref={mapRef}
+        style={styles.mapa}
+        initialRegion={REGION_VILLAGUAY}
+        onPress={() => setComplejoSeleccionado(null)}>
         {complejos.map((complejo) => (
           <Marker
             key={complejo.nombre}
             coordinate={{ latitude: complejo.latitud, longitude: complejo.longitud }}
-            title={complejo.nombre}
-            description={descripcionDe(complejo)}
+            pinColor={tema.tint}
+            onPress={() => setComplejoSeleccionado(complejo)}
           />
         ))}
         {miUbicacion && (
           <Marker
             coordinate={{ latitude: miUbicacion.latitud, longitude: miUbicacion.longitud }}
             title="Tu ubicación"
-            pinColor={tema.tint}
+            pinColor={"#1E88E5"}
           />
         )}
       </MapView>
+
+      {complejoSeleccionado && (
+        <View style={[styles.tarjeta, { backgroundColor: tema.surface }]}>
+          <Text style={styles.tituloTarjeta}>{complejoSeleccionado.nombre}</Text>
+          <Text>{descripcionDe(complejoSeleccionado)}</Text>
+          <View style={styles.accionesTarjeta}>
+            <Boton titulo="Cómo llegar" variante="secundario" onPress={() => abrirComoLlegar(complejoSeleccionado)} />
+            <Boton titulo="Ver espacios" onPress={() => irAReservar(complejoSeleccionado)} />
+          </View>
+        </View>
+      )}
+
 
       <TouchableOpacity
         style={[styles.botonUbicacion, { backgroundColor: tema.surface }]}
@@ -131,6 +165,22 @@ export default function MapaScreen() {
 const styles = StyleSheet.create({
   contenedor: { flex: 1 },
   mapa: { flex: 1 },
+  tarjeta: {
+    position: 'absolute',
+    bottom: 24,
+    left: 20,
+    right: 84,
+    borderRadius: 12,
+    padding: 14,
+    gap: 4,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  tituloTarjeta: { fontSize: 15, fontWeight: 'bold' },
+  accionesTarjeta: { gap: 8, marginTop: 8 },
   botonUbicacion: {
     position: 'absolute',
     bottom: 24,

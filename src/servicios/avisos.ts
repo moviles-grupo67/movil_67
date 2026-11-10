@@ -3,9 +3,8 @@ import { Platform } from 'react-native';
 import { Reserva } from '@/src/tipos/reserva';
 import { inicioDeTurno, textoTurno } from '@/src/utils/turnos';
 
+// Se declara una vez. Decide que pasa con una notificacion si llega mientras la app esta abierta.
 
-// Se declara una sola vez, al cargar el módulo — define qué pasa con un aviso
-// si llega mientras la app está abierta.
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowBanner: true,
@@ -17,14 +16,9 @@ Notifications.setNotificationHandler({
 
 const DOS_HORAS = 1000 * 60 * 60 * 2;
 
-// Guarda qué notificación corresponde a cada reserva, para poder cancelarla
-// si el usuario cancela la reserva. No va en el tipo Reserva porque ese tipo
-// lo define la consigna y no se toca.
-const idsPorReserva = new Map<string, string>();
-
+//Permiso de notifaciones. 
 export async function pedirPermisoAvisos(): Promise<boolean> {
   if (Platform.OS === 'android') {
-    // El canal tiene que existir ANTES de pedir el permiso.
     await Notifications.setNotificationChannelAsync('default', {
       name: 'Avisos de reservas',
       importance: Notifications.AndroidImportance.MAX,
@@ -41,6 +35,7 @@ export async function pedirPermisoAvisos(): Promise<boolean> {
 
 export type ResultadoRecordatorio = 'programado' | 'sin_permiso' | 'turno_cercano';
 
+// Recordatorio de 2hs antes del turno (notificación local)
 export async function programarRecordatorioTurno(
   reserva: Reserva,
   nombreEspacio: string
@@ -53,7 +48,7 @@ export async function programarRecordatorioTurno(
 
   if (disparo.getTime() <= Date.now()) return 'turno_cercano';
 
-  const id = await Notifications.scheduleNotificationAsync({
+  await Notifications.scheduleNotificationAsync({
     content: {
       title: 'Tu turno se acerca',
       body: `${nombreEspacio} — ${textoTurno(reserva.turnoId)}.`,
@@ -65,14 +60,13 @@ export async function programarRecordatorioTurno(
     },
   });
 
-  idsPorReserva.set(reserva.id, id);
   return 'programado';
 }
 
-
+// Busca el recordatorio pendiente de esta reserva y lo cancela.
 export async function cancelarRecordatorioTurno(reservaId: string): Promise<void> {
-  const id = idsPorReserva.get(reservaId);
-  if (!id) return;
-  await Notifications.cancelScheduledNotificationAsync(id);
-  idsPorReserva.delete(reservaId);
+  const pendientes = await Notifications.getAllScheduledNotificationsAsync();
+  const encontrada = pendientes.find((n) => n.content.data?.reservaId === reservaId);
+  if (!encontrada) return;
+  await Notifications.cancelScheduledNotificationAsync(encontrada.identifier);
 }

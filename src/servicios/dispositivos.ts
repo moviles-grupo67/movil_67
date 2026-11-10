@@ -13,6 +13,7 @@ interface Dispositivo {
   plataforma: Plataforma;
 }
 
+// Pide el token de Expo  y lo registra en la API.
 export async function registrarDispositivoPush(): Promise<void> {
   if (!Device.isDevice) return; 
   if (Platform.OS !== 'ios' && Platform.OS !== 'android') return;
@@ -21,7 +22,7 @@ export async function registrarDispositivoPush(): Promise<void> {
   if (!tienePermiso) return;
 
   const projectId = Constants.expoConfig?.extra?.eas?.projectId;
-  if (!projectId) return; 
+  if (!projectId) return;   // Pendiente, falta el proyecto de EAS.
 
   try {
     const { data: tokenExpo } = await Notifications.getExpoPushTokenAsync({ projectId });
