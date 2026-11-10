@@ -2,7 +2,12 @@ import { pedir } from '@/src/servicios/cliente-api';
 import { esError, Respuesta } from '@/src/tipos/api';
 import { Reserva } from '@/src/tipos/reserva';
 
-export async function obtenerReservas(_usuarioId: string): Promise<Reserva[]> {
+export interface MisReservas {
+  proximas: Reserva[];
+  pasadas: Reserva[];
+}
+
+export async function obtenerReservas(): Promise<Respuesta<MisReservas>> {
   const [proximas, pasadas] = await Promise.all([
     pedir<Reserva[]>({
       method: 'GET',
@@ -15,10 +20,14 @@ export async function obtenerReservas(_usuarioId: string): Promise<Reserva[]> {
       params: { cuando: 'pasadas', porPagina: 100 },
     }),
   ]);
-  return [
-    ...(esError(proximas) ? [] : proximas.datos),
-    ...(esError(pasadas) ? [] : pasadas.datos),
-  ];
+
+  if (esError(proximas)) return proximas;
+  if (esError(pasadas)) return pasadas;
+
+  return {
+    datos: { proximas: proximas.datos, pasadas: pasadas.datos },
+    meta: null,
+  };
 }
 
 export async function obtenerReservaPorId(
