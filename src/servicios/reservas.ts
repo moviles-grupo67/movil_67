@@ -1,12 +1,13 @@
-import { reservas as reservasMock } from '@/src/mocks/reservas';
 import { pedir } from '@/src/servicios/cliente-api';
 import { esError, Respuesta } from '@/src/tipos/api';
 import { Reserva } from '@/src/tipos/reserva';
-import { fechaISO, inicioDeTurno } from '@/src/utils/turnos';
 
-let reservas: Reserva[] = [...reservasMock];
+export interface MisReservas {
+  proximas: Reserva[];
+  pasadas: Reserva[];
+}
 
-export async function obtenerReservas(_usuarioId: string): Promise<Reserva[]> {
+export async function obtenerReservas(): Promise<Respuesta<MisReservas>> {
   const [proximas, pasadas] = await Promise.all([
     pedir<Reserva[]>({
       method: 'GET',
@@ -19,101 +20,33 @@ export async function obtenerReservas(_usuarioId: string): Promise<Reserva[]> {
       params: { cuando: 'pasadas', porPagina: 100 },
     }),
   ]);
-  return [
-    ...(esError(proximas) ? [] : proximas.datos),
-    ...(esError(pasadas) ? [] : pasadas.datos),
-  ];
+
+  if (esError(proximas)) return proximas;
+  if (esError(pasadas)) return pasadas;
+
+  return {
+    datos: { proximas: proximas.datos, pasadas: pasadas.datos },
+    meta: null,
+  };
 }
 
-export async function obtenerReservaPorId(
-  id: string,
-): Promise<Reserva | undefined> {
-  const respuesta = await pedir<Reserva>({
-    method: 'GET',
-    url: `/reservas/${id}`,
-  });
-  return esError(respuesta) ? undefined : respuesta.datos;
+export function obtenerReservaPorId(id: string): Promise<Respuesta<Reserva>> {
+  return pedir<Reserva>({ method: 'GET', url: `/reservas/${id}` });
 }
 
-export async function cancelarReserva(id: string): Promise<void> {
-  const respuesta = await pedir<Reserva>({
-    method: 'POST',
-    url: `/reservas/${id}/cancelacion`,
-  });
-  if (esError(respuesta)) throw new Error(respuesta.error.mensaje);
+export function cancelarReserva(id: string): Promise<Respuesta<Reserva>> {
+  return pedir<Reserva>({ method: 'POST', url: `/reservas/${id}/cancelacion` });
 }
 
-export async function crearReserva(datos: {
-  espacioId: string;
+export function crearReserva(datos: {
   turnoId: string;
-  usuarioId: string;
   cantidadPersonas: number;
-}): Promise<Reserva> {
-  const respuesta = await pedir<Reserva>({
+}): Promise<Respuesta<Reserva>> {
+  return pedir<Reserva>({
     method: 'POST',
     url: '/reservas',
-    data: { turnoId: datos.turnoId, cantidadPersonas: datos.cantidadPersonas },
+    data: datos,
   });
-  if (esError(respuesta)) throw new Error(respuesta.error.mensaje);
-  return respuesta.datos;
-}
-
-export async function cancelarPorBloqueo(id: string): Promise<void> {
-  reservas = reservas.map((r) =>
-    r.id === id ? { ...r, estado: 'cancelada' } : r,
-  );
-}
-
-export async function registrarIngreso(
-  codigoQr: string,
-  espacioId: string,
-): Promise<Reserva> {
-  const reserva = reservas.find((r) => r.codigoQr === codigoQr);
-
-  if (!reserva) {
-    throw new Error('Ese QR no es de ninguna reserva.');
-  }
-  if (reserva.estado !== 'confirmada') {
-    throw new Error(`Esta reserva ya no es válida (${reserva.estado}).`);
-  }
-  if (reserva.espacioId !== espacioId) {
-    throw new Error('Esta reserva es de otra cancha.');
-  }
-  if (fechaISO(inicioDeTurno(reserva.turnoId)) !== fechaISO(new Date())) {
-    throw new Error('Esta reserva no es de hoy.');
-  }
-
-  const actualizada: Reserva = {
-    ...reserva,
-    estado: 'cumplida',
-    ingresoEn: new Date().toISOString(),
-  };
-  reservas = reservas.map((r) => (r.id === reserva.id ? actualizada : r));
-  return actualizada;
-}
-
-export async function obtenerReservaPorCodigo(
-  codigoQr: string,
-): Promise<Reserva | undefined> {
-  return reservas.find((r) => r.codigoQr === codigoQr);
-}
-
-export async function actualizarReserva(
-  id: string,
-  cambios: Partial<Pick<Reserva, 'estado' | 'ingresoEn'>>,
-): Promise<Reserva | undefined> {
-  const actual = reservas.find((r) => r.id === id);
-  if (!actual) return undefined;
-
-  const actualizada = { ...actual, ...cambios };
-  reservas = reservas.map((r) => (r.id === id ? actualizada : r));
-  return actualizada;
-}
-
-export interface ReservaAfectada {
-  reserva: Reserva;
-  nombreUsuario: string;
-  hora: string;
 }
 
 export function marcarAusente(id: string): Promise<Respuesta<Reserva>> {

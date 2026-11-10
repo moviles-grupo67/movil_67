@@ -1,18 +1,19 @@
-import { View, StyleSheet, Pressable, Animated, FlatList } from 'react-native';
+import { View, StyleSheet, Pressable, Animated, FlatList, ActivityIndicator } from 'react-native';
 import { Text } from '@/components/Themed';
 import { Icono } from '@/components/Icono';
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { obtenerReservas } from '@/src/servicios/reservas';
 import { obtenerEspacios } from '@/src/servicios/espacios';
 import { esError } from '@/src/tipos/api';
 import { Espacio } from '@/src/tipos/espacio';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Reserva } from '@/src/tipos/reserva';
 import { useAuth } from '@/contexts/auth-context';
-import { textoTurno } from '@/src/utils/turnos';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 import { Boton } from '@/components/Boton';
+import { obtenerReservas, MisReservas } from '@/src/servicios/reservas';
+import { textoTurno, inicioDeTurno } from '@/src/utils/turnos';
+import { guardarReservas, leerReservasGuardadas } from '@/src/servicios/reservas-guardadas';
 
 const ANCHO_OPCION = 100;
 const NOMBRE_ESTADO = {
@@ -23,31 +24,64 @@ const NOMBRE_ESTADO = {
 };
 
 export default function ReservasScreen() {
-
-  const [reservas, setReservas] = useState<Reserva[]>([]);
+  const [misReservas, setMisReservas] = useState<MisReservas>({ proximas: [], pasadas: [] });
   const [espacios, setEspacios] = useState<Espacio[]>([]);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    obtenerEspacios().then((r) => {
-      if (!esError(r)) setEspacios(r.datos);
-    });
-  }, []);
   const { sesion } = useAuth();
   const router = useRouter();
   const tema = Colors[useColorScheme() ?? 'light'];
 
+    const cargar = useCallback(async () => {
+    if (!sesion) {
+      setMisReservas({ proximas: [], pasadas: [] });
+      setCargando(false);
+      return;
+    }
+    const usuarioId = sesion.usuario.id;
+    setCargando(true);
+    setError(null);
+
+    async function usarCopiaGuardada(mensaje: string) {
+      setError(mensaje);
+      const copia = await leerReservasGuardadas(usuarioId);
+      if (copia) {
+        setMisReservas(copia.reservas);
+        setEspacios(copia.espacios);
+      }
+    }
+
+    const [rReservas, rEspacios] = await Promise.all([obtenerReservas(), obtenerEspacios()]);
+    if (esError(rReservas)) {
+      await usarCopiaGuardada(rReservas.error.mensaje);
+    } else if (esError(rEspacios)) {
+      await usarCopiaGuardada(rEspacios.error.mensaje);
+    } else {
+      setMisReservas(rReservas.datos);
+      setEspacios(rEspacios.datos);
+      guardarReservas(usuarioId, rReservas.datos, rEspacios.datos); // la "foto" para después
+    }
+    setCargando(false);
+  }, [sesion]);
+
   useFocusEffect(
     useCallback(() => {
-      if (!sesion) {
-        setReservas([]);
-        return;
-      }
-      obtenerReservas(sesion.usuario.id).then(setReservas);
-    }, [sesion])
+      cargar();
+    }, [cargar]),
   );
 
   const [pestaña, setPestaña] = useState<'próximas' | 'pasadas'>('próximas');
-  const reservasFiltradas = reservas.filter((r) => pestaña === 'próximas' ? r.estado === 'confirmada' : r.estado !== 'confirmada')
+
+  // Próximas: de la más cercana a la más lejana. Pasadas: de la más reciente a la más vieja.
+  const reservasFiltradas = (pestaña === 'próximas' ? misReservas.proximas : misReservas.pasadas)
+    .slice()
+    .sort((a, b) => {
+      const diferencia = inicioDeTurno(a.turnoId).getTime() - inicioDeTurno(b.turnoId).getTime();
+      return pestaña === 'próximas' ? diferencia : -diferencia;
+    });
+  
+  const hayDatos = misReservas.proximas.length + misReservas.pasadas.length > 0;
 
   const desplazamiento = useRef(new Animated.Value(0)).current;
 
@@ -77,11 +111,22 @@ export default function ReservasScreen() {
           </Text>
         </Pressable>
       </View>
+            {error && hayDatos && (
+        <Pressable onPress={cargar} style={[styles.aviso, { backgroundColor: tema.tint + '22' }]}>
+          <Text style={[styles.textoAviso, { color: tema.tint }]}>
+                {error} Mostrando lo último guardado. Tocá para reintentar.
+          </Text>
+        </Pressable>
+      )}
       <FlatList
         data={reservasFiltradas}
         keyExtractor={(reserva) => reserva.id}
         renderItem={({ item: reserva }) => {
           const espacio = espacios.find((e) => e.id === reserva.espacioId);
+          const etiqueta =
+            pestaña === 'pasadas' && reserva.estado === 'confirmada'
+              ? 'No se presentó'
+              : NOMBRE_ESTADO[reserva.estado];
           return (
             <Pressable
               onPress={() => router.push({ pathname: '/reservas/[id]', params: { id: reserva.id } })}
@@ -94,7 +139,7 @@ export default function ReservasScreen() {
                 <Text style={styles.cardTitulo}>{espacio?.nombre}</Text>
                 <Text style={[styles.cardFecha, { color: tema.tint }]}>{textoTurno(reserva.turnoId)}</Text>
                 <Text style={[styles.chip, { color: tema.tint, backgroundColor: tema.tint + '22' }]}>
-                  {NOMBRE_ESTADO[reserva.estado]}
+                  {etiqueta}
                 </Text>
               </View>
               <Icono nombre="chevron" color={tema.tabIconDefault} size={20} />
@@ -102,10 +147,19 @@ export default function ReservasScreen() {
           );
         }}
         ListEmptyComponent={
-          <View style={styles.vacio}>
-            <Text style={styles.textoVacio}>No hay reservas</Text>
-            <Boton titulo="¡Reservá tu cancha ya!" onPress={() => router.navigate('/espacios')} />
-          </View>
+          cargando ? (
+            <ActivityIndicator color={tema.tint} style={{ marginTop: 40 }} />
+          ) : error ? (
+            <View style={styles.vacio}>
+              <Text style={styles.textoVacio}>{error}</Text>
+              <Boton titulo="Reintentar" variante="secundario" onPress={cargar} />
+            </View>
+          ) : (
+            <View style={styles.vacio}>
+              <Text style={styles.textoVacio}>No hay reservas</Text>
+              <Boton titulo="¡Reservá tu cancha ya!" onPress={() => router.navigate('/espacios')} />
+            </View>
+          )
         }
       />
     </View>
@@ -160,4 +214,6 @@ const styles = StyleSheet.create({
   textoVacio: { fontFamily: 'Inter-Regular', fontSize: 16, opacity: 0.5 },
   botonVacio: { backgroundColor: '#A4438C', paddingVertical: 12, paddingHorizontal: 24, borderRadius: 999 },
   textoBotonVacio: { fontFamily: 'Inter-Medium', color: '#fff' },
+  aviso: { padding: 10, borderRadius: 12, marginBottom: 12 },
+  textoAviso: { fontFamily: 'Inter-Medium', fontSize: 13, textAlign: 'center' },
 });
