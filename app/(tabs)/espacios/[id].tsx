@@ -70,6 +70,8 @@ export default function DetalleEspacio() {
   const [errorTurnos, setErrorTurnos] = useState<string | null>(null);
   const [diaOffset, setDiaOffset] = useState(0);
   const [turnoSeleccionado, setTurnoSeleccionado] = useState<string | null>(null);
+  const [cantidadPersonas, setCantidadPersonas] = useState(1);
+  const [reservando, setReservando] = useState(false);
   useEffect(() => {
     obtenerEspacioPorId(String(id)).then((resultado) => {
       if (!esError(resultado)) {
@@ -104,27 +106,27 @@ export default function DetalleEspacio() {
     setTurnoSeleccionado(null);
   }
 
-  async function confirmarReserva(usuarioId: string, espacioId: string, turnoId: string, nombreEspacio: string) {
-    try {
-      const reserva = await crearReserva({ espacioId, turnoId, usuarioId, cantidadPersonas: 1 });
-      const resultadoAviso = await programarRecordatorioTurno(reserva, nombreEspacio);
-      if (resultadoAviso === 'sin_permiso') {
-        alert('Reserva confirmada. No vas a recibir el recordatorio porque las notificaciones están desactivadas.');
-      } else if (resultadoAviso === 'turno_cercano') {
-        alert('Reserva confirmada. Faltan menos de 2 horas para el turno, así que no llega a avisarte antes — pero la reserva quedó hecha igual.');
-      };
-      vibrarExito();
-      router.back();
-      router.push(
-        { pathname: '/reservas/[id]', params: { id: reserva.id } },
-        { withAnchor: true }
-      );
-    } catch (err) {
+  async function confirmarReserva(turnoId: string, nombreEspacio: string) {
+    setReservando(true);
+    const rReserva = await crearReserva({ turnoId, cantidadPersonas });
+    setReservando(false);
+
+    if (esError(rReserva)) {
       vibrarError();
-      if (err instanceof Error) {
-        alert(err.message);
-      }
+      Alert.alert('No se pudo reservar', rReserva.error.mensaje);
+      return;
     }
+
+    const reserva = rReserva.datos;
+    const resultadoAviso = await programarRecordatorioTurno(reserva, nombreEspacio);
+    if (resultadoAviso === 'sin_permiso') {
+      Alert.alert('Reserva confirmada', 'No vas a recibir el recordatorio porque las notificaciones están desactivadas.');
+    } else if (resultadoAviso === 'turno_cercano') {
+      Alert.alert('Reserva confirmada', 'Faltan menos de 2 horas para el turno, así que no llega el recordatorio, pero la reserva quedó hecha.');
+    }
+    vibrarExito();
+    router.back();
+    router.push({ pathname: '/reservas/[id]', params: { id: reserva.id } }, { withAnchor: true });
   }
 
   function handleReservar() {
@@ -138,9 +140,8 @@ export default function DetalleEspacio() {
       return;
     }
 
-    const usuarioId = sesion.usuario.id;
-    const espacioId = espacio.id;
     const turnoId = turnoSeleccionado;
+    const nombreEspacio = espacio.nombre;
     const faltan = inicioDeTurno(turnoId).getTime() - Date.now();
 
     if (faltan < CUATRO_HORAS) {
@@ -149,13 +150,13 @@ export default function DetalleEspacio() {
         'Faltan menos de 4 horas. Si después no podés ir, vas a tener que avisar a la Dirección de Deportes.',
         [
           { text: 'Cancelar', style: 'cancel' },
-          { text: 'Continuar', onPress: () => confirmarReserva(usuarioId, espacioId, turnoId, espacio.nombre) },
+          { text: 'Continuar', onPress: () => confirmarReserva(turnoId, nombreEspacio) },
         ]
       );
       return;
     }
 
-    confirmarReserva(usuarioId, espacioId, turnoId, espacio.nombre);
+    confirmarReserva(turnoId, nombreEspacio);
   }
 
   const esPrimerDia = diaOffset === 0;
@@ -309,6 +310,7 @@ export default function DetalleEspacio() {
               <Boton
                 titulo={`Confirmar reserva de las ${dosDigitos(inicioDeTurno(turnoSeleccionado).getHours())}:00 hs`}
                 onPress={handleReservar}
+                cargando={reservando}
               />
             </View>
           ) : null

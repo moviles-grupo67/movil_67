@@ -38,19 +38,15 @@ export function cancelarReserva(id: string): Promise<Respuesta<Reserva>> {
   return pedir<Reserva>({ method: 'POST', url: `/reservas/${id}/cancelacion` });
 }
 
-export async function crearReserva(datos: {
-  espacioId: string;
+export function crearReserva(datos: {
   turnoId: string;
-  usuarioId: string;
   cantidadPersonas: number;
-}): Promise<Reserva> {
-  const respuesta = await pedir<Reserva>({
+}): Promise<Respuesta<Reserva>> {
+  return pedir<Reserva>({
     method: 'POST',
     url: '/reservas',
-    data: { turnoId: datos.turnoId, cantidadPersonas: datos.cantidadPersonas },
+    data: datos,
   });
-  if (esError(respuesta)) throw new Error(respuesta.error.mensaje);
-  return respuesta.datos;
 }
 
 export function marcarAusente(id: string): Promise<Respuesta<Reserva>> {
