@@ -14,6 +14,8 @@ import { Espacio } from '@/src/tipos/espacio';
 import { Reserva } from '@/src/tipos/reserva';
 import { textoTurno, textoHora, textoDia } from '@/src/utils/turnos';
 import { Boton } from '@/components/Boton';
+import { useAuth } from '@/contexts/auth-context';
+import { leerReservasGuardadas } from '@/src/servicios/reservas-guardadas';
 
 export default function DetalleReserva() {
     const { id } = useLocalSearchParams();
@@ -27,20 +29,34 @@ export default function DetalleReserva() {
     const [error, setError] = useState<string | null>(null);
     const [cancelando, setCancelando] = useState(false);
 
+    const [sinConexion, setSinConexion] = useState(false);
+    const { sesion } = useAuth();
+
     const cargar = useCallback(async () => {
         setCargando(true);
         setError(null);
         const rReserva = await obtenerReservaPorId(String(id));
-        if (esError(rReserva)) {
-            setError(rReserva.error.mensaje);
+            if (esError(rReserva)) {
+            const copia = sesion ? await leerReservasGuardadas(sesion.usuario.id) : null;
+            const guardada = copia
+                ? [...copia.reservas.proximas, ...copia.reservas.pasadas].find((r) => r.id === String(id))
+                : undefined;
+            if (copia && guardada) {
+                setReserva(guardada);
+                setEspacio(copia.espacios.find((e) => e.id === guardada.espacioId) ?? null);
+                setSinConexion(true);
+            } else {
+                setError(rReserva.error.mensaje);
+            }
             setCargando(false);
             return;
         }
+        setSinConexion(false);
         setReserva(rReserva.datos);
         const rEspacio = await obtenerEspacioPorId(rReserva.datos.espacioId);
         if (!esError(rEspacio)) setEspacio(rEspacio.datos);
         setCargando(false);
-    }, [id]);
+    }, [id, sesion]);
 
     useEffect(() => {
         cargar();
@@ -94,6 +110,11 @@ export default function DetalleReserva() {
 
     return (
         <View style={styles.container}>
+            {sinConexion && (
+                <Text style={[styles.aviso, { color: tema.tint, backgroundColor: tema.tint + '22' }]}>
+                    Sin conexión: este es el QR guardado en tu teléfono.
+                </Text>
+            )}
             <Text style={styles.titulo}>{espacio?.nombre}</Text>
             <Text style={[styles.fecha, { color: tema.tint }]}>{textoTurno(reserva.turnoId)}</Text>
             <Text>{espacio?.complejo}</Text>
@@ -139,4 +160,5 @@ const styles = StyleSheet.create({
     codigo: { fontWeight: 'bold', letterSpacing: 1 },
     ayuda: { opacity: 0.6, marginTop: 4, textAlign: 'center' },
     contenedorBoton: { alignSelf: 'stretch', marginTop: 24, gap: 10 },
+        aviso: { alignSelf: 'stretch', padding: 10, borderRadius: 12, marginBottom: 12, textAlign: 'center', overflow: 'hidden', fontWeight: '600' },
 });

@@ -13,6 +13,7 @@ import Colors from '@/constants/Colors';
 import { Boton } from '@/components/Boton';
 import { obtenerReservas, MisReservas } from '@/src/servicios/reservas';
 import { textoTurno, inicioDeTurno } from '@/src/utils/turnos';
+import { guardarReservas, leerReservasGuardadas } from '@/src/servicios/reservas-guardadas';
 
 const ANCHO_OPCION = 100;
 const NOMBRE_ESTADO = {
@@ -32,20 +33,34 @@ export default function ReservasScreen() {
   const router = useRouter();
   const tema = Colors[useColorScheme() ?? 'light'];
 
-  const cargar = useCallback(async () => {
+    const cargar = useCallback(async () => {
     if (!sesion) {
       setMisReservas({ proximas: [], pasadas: [] });
       setCargando(false);
       return;
     }
+    const usuarioId = sesion.usuario.id;
     setCargando(true);
     setError(null);
+
+    async function usarCopiaGuardada(mensaje: string) {
+      setError(mensaje);
+      const copia = await leerReservasGuardadas(usuarioId);
+      if (copia) {
+        setMisReservas(copia.reservas);
+        setEspacios(copia.espacios);
+      }
+    }
+
     const [rReservas, rEspacios] = await Promise.all([obtenerReservas(), obtenerEspacios()]);
-    if (esError(rReservas)) setError(rReservas.error.mensaje);
-    else if (esError(rEspacios)) setError(rEspacios.error.mensaje);
-    else {
+    if (esError(rReservas)) {
+      await usarCopiaGuardada(rReservas.error.mensaje);
+    } else if (esError(rEspacios)) {
+      await usarCopiaGuardada(rEspacios.error.mensaje);
+    } else {
       setMisReservas(rReservas.datos);
       setEspacios(rEspacios.datos);
+      guardarReservas(usuarioId, rReservas.datos, rEspacios.datos); // la "foto" para después
     }
     setCargando(false);
   }, [sesion]);
@@ -99,7 +114,7 @@ export default function ReservasScreen() {
             {error && hayDatos && (
         <Pressable onPress={cargar} style={[styles.aviso, { backgroundColor: tema.tint + '22' }]}>
           <Text style={[styles.textoAviso, { color: tema.tint }]}>
-            {error} Tocá para reintentar.
+                {error} Mostrando lo último guardado. Tocá para reintentar.
           </Text>
         </Pressable>
       )}
