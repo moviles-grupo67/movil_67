@@ -60,11 +60,11 @@ export default function DetalleEspacio() {
     p.loop = true;
   });
   const [deportes, setDeportes] = useState<Deporte[]>([]);
-    useEffect(() => {
-      obtenerDeportes().then((r) => {
-        if (!esError(r)) setDeportes(r.datos);
-      });
-    }, []);
+  useEffect(() => {
+    obtenerDeportes().then((r) => {
+      if (!esError(r)) setDeportes(r.datos);
+    });
+  }, []);
   const [turnosApi, setTurnosApi] = useState<Turno[]>([]);
   const [cargandoTurnos, setCargandoTurnos] = useState(true);
   const [errorTurnos, setErrorTurnos] = useState<string | null>(null);
@@ -179,17 +179,17 @@ export default function DetalleEspacio() {
 
   const esFavorito = sesion?.usuario.espaciosFavoritos.includes(espacio?.id ?? '') ?? false;
 
-    function handleFavorito() {
-      if (!espacio) return;
-      if (!sesion) {
-        router.push({
-          pathname: '/ingreso',
-          params: { resumen: `Marcar ${espacio.nombre} como favorito` },
-        });
-        return;
-      }
-      alternarFavorito(espacio.id);
+  function handleFavorito() {
+    if (!espacio) return;
+    if (!sesion) {
+      router.push({
+        pathname: '/ingreso',
+        params: { resumen: `Marcar ${espacio.nombre} como favorito` },
+      });
+      return;
     }
+    alternarFavorito(espacio.id);
+  }
 
   return (
     <>
@@ -283,7 +283,7 @@ export default function DetalleEspacio() {
             style={[
               styles.turno,
               { backgroundColor: COLOR_ESTADO[turno.estado] },
-                turnoSeleccionado === turno.id && { borderWidth: 3, borderColor: tema.tint },
+              turnoSeleccionado === turno.id && { borderWidth: 3, borderColor: tema.tint },
             ]}>
             <Text style={{ color: '#000' }}>
               {turno.inicio} - {turno.fin} · {turno.estado}
@@ -306,7 +306,33 @@ export default function DetalleEspacio() {
         }
         ListFooterComponent={
           turnoSeleccionado ? (
-            <View style={{ marginTop: 16 }}>
+            <View style={{ marginTop: 16, gap: 12 }}>
+              <View style={styles.cantidad}>
+                <Text style={{ color: tema.text }}>¿Cuántos van a ser?</Text>
+                <View style={styles.contador}>
+                  <Pressable
+                    onPress={() => {
+                      vibrarToque();
+                      setCantidadPersonas((c) => Math.max(1, c - 1));
+                    }}
+                    disabled={cantidadPersonas <= 1}
+                    hitSlop={8}
+                    style={[styles.botonContador, { borderColor: tema.tint }, cantidadPersonas <= 1 && styles.apagada]}>
+                    <Text style={[styles.textoContador, { color: tema.tint }]}>−</Text>
+                  </Pressable>
+                  <Text style={[styles.numeroContador, { color: tema.text }]}>{cantidadPersonas}</Text>
+                  <Pressable
+                    onPress={() => {
+                      vibrarToque();
+                      setCantidadPersonas((c) => Math.min(espacio.capacidad, c + 1));
+                    }}
+                    disabled={cantidadPersonas >= espacio.capacidad}
+                    hitSlop={8}
+                    style={[styles.botonContador, { borderColor: tema.tint }, cantidadPersonas >= espacio.capacidad && styles.apagada]}>
+                    <Text style={[styles.textoContador, { color: tema.tint }]}>+</Text>
+                  </Pressable>
+                </View>
+              </View>
               <Boton
                 titulo={`Confirmar reserva de las ${dosDigitos(inicioDeTurno(turnoSeleccionado).getHours())}:00 hs`}
                 onPress={handleReservar}
@@ -348,4 +374,9 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Medium',
     fontSize: 12,
   },
+  cantidad: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  contador: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  botonContador: { width: 36, height: 36, borderRadius: 18, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  textoContador: { fontSize: 20, fontWeight: 'bold' },
+  numeroContador: { fontSize: 18, fontWeight: 'bold', minWidth: 24, textAlign: 'center' },
 });
