@@ -88,11 +88,12 @@ export default function AgendaScreen() {
   async function verReserva(turno: Turno) {
     if (!turno.reservaId) return;
 
-    const reserva = await obtenerReservaPorId(turno.reservaId);
-    if (!reserva) {
-      Alert.alert('Error', 'No se pudo cargar la reserva.');
+    const rReserva = await obtenerReservaPorId(turno.reservaId);
+    if (esError(rReserva)) {
+      Alert.alert('No se pudo cargar la reserva', rReserva.error.mensaje);
       return;
     }
+    const reserva = rReserva.datos;
     const rUsuario = await obtenerUsuarioPorId(reserva.usuarioId);
     const nombre = esError(rUsuario)
       ? 'Usuario desconocido'
@@ -119,8 +120,8 @@ export default function AgendaScreen() {
     Alert.alert(
       nombre,
       `${nombreEspacio(turno.espacioId)} · ${turno.inicio} a ${turno.fin} hs\n` +
-        `Teléfono: ${telefono}\n` +
-        `${reserva.cantidadPersonas} personas · ${reserva.estado}`,
+      `Teléfono: ${telefono}\n` +
+      `${reserva.cantidadPersonas} personas · ${reserva.estado}`,
       botones,
     );
   }

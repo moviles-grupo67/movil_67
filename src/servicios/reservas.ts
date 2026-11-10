@@ -30,22 +30,12 @@ export async function obtenerReservas(): Promise<Respuesta<MisReservas>> {
   };
 }
 
-export async function obtenerReservaPorId(
-  id: string,
-): Promise<Reserva | undefined> {
-  const respuesta = await pedir<Reserva>({
-    method: 'GET',
-    url: `/reservas/${id}`,
-  });
-  return esError(respuesta) ? undefined : respuesta.datos;
+export function obtenerReservaPorId(id: string): Promise<Respuesta<Reserva>> {
+  return pedir<Reserva>({ method: 'GET', url: `/reservas/${id}` });
 }
 
-export async function cancelarReserva(id: string): Promise<void> {
-  const respuesta = await pedir<Reserva>({
-    method: 'POST',
-    url: `/reservas/${id}/cancelacion`,
-  });
-  if (esError(respuesta)) throw new Error(respuesta.error.mensaje);
+export function cancelarReserva(id: string): Promise<Respuesta<Reserva>> {
+  return pedir<Reserva>({ method: 'POST', url: `/reservas/${id}/cancelacion` });
 }
 
 export async function crearReserva(datos: {
