@@ -117,7 +117,7 @@ export default function DetalleReserva() {
             )}
             <Text style={styles.titulo}>{espacio?.nombre}</Text>
             <Text style={[styles.fecha, { color: tema.tint }]}>{textoTurno(reserva.turnoId)}</Text>
-            <Text>{espacio?.complejo}</Text>
+            {espacio && espacio.complejo !== '—' && <Text>{espacio.complejo}</Text>}
             <Text>$ {espacio?.precioPorHora.toLocaleString('es-AR')} - se paga en el lugar</Text>
 
             <View style={styles.qrContainer}>
