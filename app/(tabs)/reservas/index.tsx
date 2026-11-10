@@ -110,7 +110,7 @@ export default function ReservasScreen() {
           const espacio = espacios.find((e) => e.id === reserva.espacioId);
           const etiqueta =
             pestaña === 'pasadas' && reserva.estado === 'confirmada'
-              ? 'Sin registrar'
+              ? 'No se presentó'
               : NOMBRE_ESTADO[reserva.estado];
           return (
             <Pressable
