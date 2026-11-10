@@ -1,4 +1,4 @@
-import { StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { StyleSheet, Alert, ActivityIndicator, Linking } from 'react-native';
 import { Text, View } from '@/components/Themed';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
@@ -69,6 +69,12 @@ export default function DetalleReserva() {
         router.back();
     }
 
+    function abrirComoLlegar() {
+        if (!espacio) return;
+        const { latitud, longitud } = espacio.coordenadas;
+        Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${latitud},${longitud}`);
+    }
+
     if (cargando) {
         return (
             <View style={styles.centro}>
@@ -103,6 +109,7 @@ export default function DetalleReserva() {
             {reserva.estado === 'confirmada' && (
                 <>
                     <View style={styles.contenedorBoton}>
+                        <Boton titulo="Cómo llegar" variante="secundario" onPress={abrirComoLlegar} />
                         <Boton
                             titulo="Cancelar reserva"
                             variante="peligro"
@@ -131,5 +138,5 @@ const styles = StyleSheet.create({
     qrContainer: { backgroundColor: '#FFFFFF', padding: 20, borderRadius: 12, marginVertical: 24 },
     codigo: { fontWeight: 'bold', letterSpacing: 1 },
     ayuda: { opacity: 0.6, marginTop: 4, textAlign: 'center' },
-    contenedorBoton: { alignSelf: 'stretch', marginTop: 24 },
+    contenedorBoton: { alignSelf: 'stretch', marginTop: 24, gap: 10 },
 });
