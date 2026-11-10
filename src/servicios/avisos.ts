@@ -2,7 +2,6 @@ import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { Reserva } from '@/src/tipos/reserva';
 import { inicioDeTurno, textoTurno } from '@/src/utils/turnos';
-import { ReservaAfectada } from '@/src/servicios/reservas';
 
 
 // Se declara una sola vez, al cargar el módulo — define qué pasa con un aviso
@@ -76,26 +75,4 @@ export async function cancelarRecordatorioTurno(reservaId: string): Promise<void
   if (!id) return;
   await Notifications.cancelScheduledNotificationAsync(id);
   idsPorReserva.delete(reservaId);
-}
-
-export async function avisarReservasAfectadas(
-  afectadas: ReservaAfectada[],
-  motivo: string
-): Promise<void> {
-  const tienePermiso = await pedirPermisoAvisos();
-  if (!tienePermiso) return;
-
-  for (const afectada of afectadas) {
-    // El recordatorio de las 2hs antes ya no tiene sentido si el turno se suspendió.
-    await cancelarRecordatorioTurno(afectada.reserva.id);
-
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: 'Tu turno fue suspendido',
-        body: `${afectada.hora} hs — ${motivo}`,
-        data: { reservaId: afectada.reserva.id },
-      },
-      trigger: null, // se dispara ahora mismo, no programado
-    });
-  }
 }
