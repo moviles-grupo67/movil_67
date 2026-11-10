@@ -24,11 +24,18 @@ import { Deporte } from '@/src/tipos/deporte';
 
 const DIAS_VISIBLES = 7;
 
-const COLOR_ESTADO = {
+const COLOR_ESTADO_CLARO = {
   libre: '#C8E6C9',
   reservado: '#EF9A9A',
   fijo: '#FFE0B2',
   mantenimiento: '#E0E0E0',
+};
+
+const COLOR_ESTADO_OSCURO = {
+  libre: '#2E4F32',
+  reservado: '#5C2B2B',
+  fijo: '#5C4420',
+  mantenimiento: '#3A3A3A',
 };
 
 function fechaDelOffset(diaOffset: number): Date {
@@ -54,7 +61,9 @@ export default function DetalleEspacio() {
   const { width: anchoPantalla } = useWindowDimensions();
   const anchoMedio = anchoPantalla - 40;
   const progress = useSharedValue(0);
-  const tema = Colors[useColorScheme() ?? 'light'];
+  const esquema = useColorScheme();
+  const tema = Colors[esquema ?? 'light'];
+  const coloresEstado = esquema === 'dark' ? COLOR_ESTADO_OSCURO : COLOR_ESTADO_CLARO;
   const [espacio, setEspacio] = useState<Espacio | undefined>(undefined);
   const player = useVideoPlayer(espacio?.videoUrl ?? null, (p) => {
     p.loop = true;
@@ -99,6 +108,7 @@ export default function DetalleEspacio() {
   const fecha = fechaDelOffset(diaOffset);
 
   const ahora = Date.now();
+  // Saca los turnos que ya pasaron.
   const turnos = turnosApi.filter((t) => inicioDeTurno(t.id).getTime() > ahora);
 
   function cambiarDia(delta: number) {
@@ -106,6 +116,7 @@ export default function DetalleEspacio() {
     setTurnoSeleccionado(null);
   }
 
+  // Crea la reserva en la API y, si sale bien, programa el recordatorio de 2hs antes
   async function confirmarReserva(turnoId: string, nombreEspacio: string) {
     setReservando(true);
     const rReserva = await crearReserva({ turnoId, cantidadPersonas });
@@ -128,7 +139,9 @@ export default function DetalleEspacio() {
     router.back();
     router.push({ pathname: '/reservas/[id]', params: { id: reserva.id } }, { withAnchor: true });
   }
-
+  
+  // Si no hay sesión, manda a loguearse antes de reservar. Si faltan menos de 4hs
+  // para el turno, avisa que después no se va a poder cancelar sola.
   function handleReservar() {
     if (!turnoSeleccionado || !espacio) return;
 
@@ -179,6 +192,7 @@ export default function DetalleEspacio() {
 
   const esFavorito = sesion?.usuario.espaciosFavoritos.includes(espacio?.id ?? '') ?? false;
 
+  // Si no hay sesión, pide loguearse antes de marcar favorito.
   function handleFavorito() {
     if (!espacio) return;
     if (!sesion) {
@@ -282,10 +296,10 @@ export default function DetalleEspacio() {
             }}
             style={[
               styles.turno,
-              { backgroundColor: COLOR_ESTADO[turno.estado] },
+              { backgroundColor: coloresEstado[turno.estado] },
               turnoSeleccionado === turno.id && { borderWidth: 3, borderColor: tema.tint },
             ]}>
-            <Text style={{ color: '#000' }}>
+            <Text style={{ color: tema.text }}>
               {turno.inicio} - {turno.fin} · {turno.estado}
               {turno.estado === 'libre' ? ` · $ ${turno.precio.toLocaleString('es-AR')}` : ''}
               {turno.motivoBloqueo ? ` (${turno.motivoBloqueo})` : ''}
