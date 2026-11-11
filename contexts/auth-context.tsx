@@ -1,11 +1,11 @@
 import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import * as SecureStore from 'expo-secure-store';
-
 import { autenticar, biometriaDisponible } from '@/src/servicios/biometria';
 import { iniciarSesion, obtenerSesionPorToken, registrarse } from '@/src/servicios/auth-service';
 import { CLAVE_TOKEN } from '@/src/servicios/cliente-api';
 import { alternarFavorito as alternarFavoritoServicio } from '@/src/servicios/usuarios';
 import { vibrarError, vibrarExito } from '@/src/servicios/vibracion';
+import { registrarDispositivoPush } from '@/src/servicios/dispositivos';
 import { esError, Respuesta } from '@/src/tipos/api';
 import { DatosRegistro, Sesion, Usuario } from '@/src/tipos/usuario';
 
@@ -91,6 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setBiometriaActivada(idActivado === respuesta.datos.usuario.id);
     setPendiente(null);
     setSesion(respuesta.datos);
+    registrarDispositivoPush();
     return null;
   }, []);
 

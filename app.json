@@ -53,6 +53,7 @@
         }
       ],
       "expo-build-properties"
+      "expo-sqlite"
     ],
     "experiments": {
       "typedRoutes": true

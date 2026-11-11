@@ -2,7 +2,12 @@ import { pedir } from '@/src/servicios/cliente-api';
 import { esError, Respuesta } from '@/src/tipos/api';
 import { Reserva } from '@/src/tipos/reserva';
 
-export async function obtenerReservas(_usuarioId: string): Promise<Reserva[]> {
+export interface MisReservas {
+  proximas: Reserva[];
+  pasadas: Reserva[];
+}
+
+export async function obtenerReservas(): Promise<Respuesta<MisReservas>> {
   const [proximas, pasadas] = await Promise.all([
     pedir<Reserva[]>({
       method: 'GET',
@@ -15,49 +20,33 @@ export async function obtenerReservas(_usuarioId: string): Promise<Reserva[]> {
       params: { cuando: 'pasadas', porPagina: 100 },
     }),
   ]);
-  return [
-    ...(esError(proximas) ? [] : proximas.datos),
-    ...(esError(pasadas) ? [] : pasadas.datos),
-  ];
+
+  if (esError(proximas)) return proximas;
+  if (esError(pasadas)) return pasadas;
+
+  return {
+    datos: { proximas: proximas.datos, pasadas: pasadas.datos },
+    meta: null,
+  };
 }
 
-export async function obtenerReservaPorId(
-  id: string,
-): Promise<Reserva | undefined> {
-  const respuesta = await pedir<Reserva>({
-    method: 'GET',
-    url: `/reservas/${id}`,
-  });
-  return esError(respuesta) ? undefined : respuesta.datos;
+export function obtenerReservaPorId(id: string): Promise<Respuesta<Reserva>> {
+  return pedir<Reserva>({ method: 'GET', url: `/reservas/${id}` });
 }
 
-export async function cancelarReserva(id: string): Promise<void> {
-  const respuesta = await pedir<Reserva>({
-    method: 'POST',
-    url: `/reservas/${id}/cancelacion`,
-  });
-  if (esError(respuesta)) throw new Error(respuesta.error.mensaje);
+export function cancelarReserva(id: string): Promise<Respuesta<Reserva>> {
+  return pedir<Reserva>({ method: 'POST', url: `/reservas/${id}/cancelacion` });
 }
 
-export async function crearReserva(datos: {
-  espacioId: string;
+export function crearReserva(datos: {
   turnoId: string;
-  usuarioId: string;
   cantidadPersonas: number;
-}): Promise<Reserva> {
-  const respuesta = await pedir<Reserva>({
+}): Promise<Respuesta<Reserva>> {
+  return pedir<Reserva>({
     method: 'POST',
     url: '/reservas',
-    data: { turnoId: datos.turnoId, cantidadPersonas: datos.cantidadPersonas },
+    data: datos,
   });
-  if (esError(respuesta)) throw new Error(respuesta.error.mensaje);
-  return respuesta.datos;
-}
-
-export interface ReservaAfectada {
-  reserva: Reserva;
-  nombreUsuario: string;
-  hora: string;
 }
 
 export function marcarAusente(id: string): Promise<Respuesta<Reserva>> {

@@ -1,5 +1,5 @@
 import { StyleSheet, FlatList, Pressable, View, Modal, TouchableOpacity } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { obtenerEspacios } from '@/src/servicios/espacios';
 import { esError } from '@/src/tipos/api';
@@ -18,6 +18,7 @@ export default function EspaciosScreen() {
 
   const tema = Colors[useColorScheme() ?? 'light'];
   const router = useRouter();
+  const { complejo } = useLocalSearchParams<{ complejo?: string }>();
 
   const [espacios, setEspacios] = useState<Espacio[]>([]);
 
@@ -41,8 +42,12 @@ export default function EspaciosScreen() {
     });
   }, []);
 
-  const [complejoSeleccionado, setComplejoSeleccionado] = useState<string | null>(null);
+  const [complejoSeleccionado, setComplejoSeleccionado] = useState<string | null>(complejo ?? null);
 
+  useEffect(() => {
+    if (complejo) setComplejoSeleccionado(complejo);
+  }, [complejo]);
+  
   const complejos = [...new Set(espacios.map((e) => e.complejo))];
 
   const espaciosFiltrados = espacios.filter((e) => {

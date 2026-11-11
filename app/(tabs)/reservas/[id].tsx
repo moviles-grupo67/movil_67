@@ -1,121 +1,164 @@
-import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { StyleSheet, Alert, ActivityIndicator, Linking } from 'react-native';
+import { Text, View } from '@/components/Themed';
+import { useColorScheme } from '@/components/useColorScheme';
+import Colors from '@/constants/Colors';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import QRCode from 'react-native-qrcode-svg';
+import { useCallback, useEffect, useState } from 'react';
 import { obtenerEspacioPorId } from '@/src/servicios/espacios';
+import { cancelarReserva, obtenerReservaPorId } from '@/src/servicios/reservas';
+import { cancelarRecordatorioTurno } from '@/src/servicios/avisos';
+import { vibrarExito, vibrarError } from '@/src/servicios/vibracion';
 import { esError } from '@/src/tipos/api';
 import { Espacio } from '@/src/tipos/espacio';
-import { useRouter } from 'expo-router';
-import { cancelarReserva } from '@/src/servicios/reservas';
-import { obtenerReservaPorId } from '@/src/servicios/reservas';
-import { useEffect, useState } from 'react';
 import { Reserva } from '@/src/tipos/reserva';
-import { cancelarRecordatorioTurno } from '@/src/servicios/avisos';
 import { textoTurno, textoHora, textoDia } from '@/src/utils/turnos';
-import { vibrarExito, vibrarError } from '@/src/servicios/vibracion';
 import { Boton } from '@/components/Boton';
+import { useAuth } from '@/contexts/auth-context';
+import { leerReservasGuardadas } from '@/src/servicios/reservas-guardadas';
 
 export default function DetalleReserva() {
     const { id } = useLocalSearchParams();
+    const router = useRouter();
 
-    const [reserva, setReserva] = useState<Reserva | undefined>(undefined);
-    const [espacio, setEspacio] = useState<Espacio | undefined>(undefined);
+    const tema = Colors[useColorScheme() ?? 'light'];
+
+    const [reserva, setReserva] = useState<Reserva | null>(null);
+    const [espacio, setEspacio] = useState<Espacio | null>(null);
+    const [cargando, setCargando] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [cancelando, setCancelando] = useState(false);
+
+    const [sinConexion, setSinConexion] = useState(false);
+    const { sesion } = useAuth();
+
+    const cargar = useCallback(async () => {
+        setCargando(true);
+        setError(null);
+        const rReserva = await obtenerReservaPorId(String(id));
+            if (esError(rReserva)) {
+            const copia = sesion ? await leerReservasGuardadas(sesion.usuario.id) : null;
+            const guardada = copia
+                ? [...copia.reservas.proximas, ...copia.reservas.pasadas].find((r) => r.id === String(id))
+                : undefined;
+            if (copia && guardada) {
+                setReserva(guardada);
+                setEspacio(copia.espacios.find((e) => e.id === guardada.espacioId) ?? null);
+                setSinConexion(true);
+            } else {
+                setError(rReserva.error.mensaje);
+            }
+            setCargando(false);
+            return;
+        }
+        setSinConexion(false);
+        setReserva(rReserva.datos);
+        const rEspacio = await obtenerEspacioPorId(rReserva.datos.espacioId);
+        if (!esError(rEspacio)) setEspacio(rEspacio.datos);
+        setCargando(false);
+    }, [id, sesion]);
 
     useEffect(() => {
-        if (!reserva) return;
-        obtenerEspacioPorId(reserva.espacioId).then((r) => {
-            if (!esError(r)) setEspacio(r.datos);
-        });
-    }, [reserva]);
-    useEffect(() => {
-        obtenerReservaPorId(String(id)).then(setReserva);
-    }, [id]);
+        cargar();
+    }, [cargar]);
 
     const hasta = reserva ? new Date(reserva.cancelableHasta) : null;
     const horaLimite = hasta ? textoHora(hasta) : '';
-    const sePuedeCancelar = hasta ? new Date() <= hasta : false;
+    // Solo se cancela una reserva confirmada y antes del límite.
+    const sePuedeCancelar = reserva?.estado === 'confirmada' && hasta !== null && new Date() <= hasta;
 
     const esHoy = hasta ? hasta.toDateString() === new Date().toDateString() : false;
     const diaLimite = esHoy ? 'de hoy' : `del ${hasta ? textoDia(hasta) : ''}`;
 
-    const router = useRouter();
-
     async function handleCancelar() {
         if (!reserva) return;
-        try {
-            await cancelarReserva(reserva.id);
-            await cancelarRecordatorioTurno(reserva.id);
-            vibrarExito();
-            router.back();
-        } catch (err) {
+        setCancelando(true);
+        const rCancelacion = await cancelarReserva(reserva.id);
+        setCancelando(false);
+        if (esError(rCancelacion)) {
             vibrarError();
-            if (err instanceof Error) {
-                alert(err.message);
-            }
+            Alert.alert('No se pudo cancelar', rCancelacion.error.mensaje);
+            return;
         }
+        await cancelarRecordatorioTurno(reserva.id);
+        vibrarExito();
+        router.back();
+    }
+
+    function abrirComoLlegar() {
+        if (!espacio) return;
+        const { latitud, longitud } = espacio.coordenadas;
+        Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${latitud},${longitud}`);
+    }
+
+    if (cargando) {
+        return (
+            <View style={styles.centro}>
+                <ActivityIndicator color={tema.tint} />
+            </View>
+        );
+    }
+
+    if (error || !reserva) {
+        return (
+            <View style={styles.centro}>
+                <Text style={styles.ayuda}>{error ?? 'No encontramos la reserva.'}</Text>
+                <Boton titulo="Reintentar" variante="secundario" onPress={cargar} />
+            </View>
+        );
     }
 
     return (
-        <View
-            style={styles.container}
-        >
-            <Text
-                style={styles.titulo}
-            >
-                {espacio?.nombre}
-            </Text>
-            {reserva && (
-                <Text style={styles.fecha}>{textoTurno(reserva.turnoId)}</Text>
-            )}
-            <Text>
-                {espacio?.complejo}
-            </Text>
-            <Text>
-                $ {espacio?.precioPorHora.toLocaleString('es-AR')} - se paga en el lugar
-            </Text>
-
-            {reserva && (
-                <View
-                    style={styles.qrContainer}
-                >
-                    <QRCode value={reserva.codigoQr} size={200} />
-                </View>
-            )}
-
-            <Text
-                style={styles.codigo}
-            >
-                {reserva?.codigoQr}
-            </Text>
-            <Text
-                style={styles.ayuda}
-            >
-                Mostráselo al encargado
-            </Text>
-            <View style={styles.contenedorBoton}>
-                <Boton
-                    titulo="Cancelar reserva"
-                    variante="peligro"
-                    onPress={handleCancelar}
-                    deshabilitado={!sePuedeCancelar}
-                />
-            </View>
-            {reserva && (
-                <Text style={styles.ayuda}>
-                    {sePuedeCancelar
-                        ? `Se puede cancelar sin aviso hasta las ${horaLimite} ${diaLimite}`
-                        : 'Para cancelar, avisá a la Dirección de Deportes'}
+        <View style={styles.container}>
+            {sinConexion && (
+                <Text style={[styles.aviso, { color: tema.tint, backgroundColor: tema.tint + '22' }]}>
+                    Sin conexión: este es el QR guardado en tu teléfono.
                 </Text>
             )}
+            <Text style={styles.titulo}>{espacio?.nombre}</Text>
+            <Text style={[styles.fecha, { color: tema.tint }]}>{textoTurno(reserva.turnoId)}</Text>
+            {espacio && espacio.complejo !== '—' && <Text>{espacio.complejo}</Text>}
+            <Text>$ {espacio?.precioPorHora.toLocaleString('es-AR')} - se paga en el lugar</Text>
+
+            <View style={styles.qrContainer}>
+                <QRCode value={reserva.codigoQr} size={200} />
+            </View>
+
+            <Text style={styles.codigo}>{reserva.codigoQr}</Text>
+            <Text style={styles.ayuda}>Mostráselo al encargado</Text>
+
+            {reserva.estado === 'confirmada' && (
+                <>
+                    <View style={styles.contenedorBoton}>
+                        <Boton titulo="Cómo llegar" variante="secundario" onPress={abrirComoLlegar} />
+                        <Boton
+                            titulo="Cancelar reserva"
+                            variante="peligro"
+                            onPress={handleCancelar}
+                            deshabilitado={!sePuedeCancelar}
+                            cargando={cancelando}
+                        />
+                    </View>
+                    <Text style={styles.ayuda}>
+                        {sePuedeCancelar
+                            ? `Se puede cancelar sin aviso hasta las ${horaLimite} ${diaLimite}`
+                            : 'Para cancelar, avisá a la Dirección de Deportes'}
+                    </Text>
+                </>
+            )}
         </View>
-    )
+    );
 }
 
 const styles = StyleSheet.create({
     container: { flex: 1, padding: 20, alignItems: 'center' },
+    centro: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 12 },
     titulo: { fontSize: 22, fontWeight: 'bold', marginBottom: 8 },
-    qrContainer: { backgroundColor: '#fff', padding: 20, borderRadius: 12, marginVertical: 24 },
+    fecha: { fontSize: 16, fontWeight: 'bold', marginBottom: 4 },
+    // El QR siempre va sobre blanco: el escáner lo lee mejor con contraste.
+    qrContainer: { backgroundColor: '#FFFFFF', padding: 20, borderRadius: 12, marginVertical: 24 },
     codigo: { fontWeight: 'bold', letterSpacing: 1 },
-    ayuda: { color: '#999', marginTop: 4 },
-    contenedorBoton: { alignSelf: 'stretch', marginTop: 24 },
-    fecha: { fontSize: 16, fontWeight: 'bold', color: '#A4438C', marginBottom: 4 },
-})
+    ayuda: { opacity: 0.6, marginTop: 4, textAlign: 'center' },
+    contenedorBoton: { alignSelf: 'stretch', marginTop: 24, gap: 10 },
+        aviso: { alignSelf: 'stretch', padding: 10, borderRadius: 12, marginBottom: 12, textAlign: 'center', overflow: 'hidden', fontWeight: '600' },
+});
