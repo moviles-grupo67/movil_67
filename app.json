@@ -24,6 +24,11 @@
       "package": "ar.edu.grupo67.reservas",
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyDoBhbzoHBl5O7PdmTzgL9SH9o9Givul0w"
+        }
+      },
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO",
@@ -52,7 +57,7 @@
           "locationWhenInUsePermission": "Usamos tu ubicación para mostrarte los complejos deportivos más cercanos."
         }
       ],
-      "expo-build-properties"
+      "expo-build-properties",
       "expo-sqlite"
     ],
     "experiments": {
