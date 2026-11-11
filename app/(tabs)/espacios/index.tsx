@@ -1,6 +1,6 @@
-import { StyleSheet, FlatList, Pressable, View, Modal, TouchableOpacity } from 'react-native';
+import { StyleSheet, FlatList, Pressable, View, Modal, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { obtenerEspacios } from '@/src/servicios/espacios';
 import { esError } from '@/src/tipos/api';
 import { Espacio } from '@/src/tipos/espacio';
@@ -22,13 +22,25 @@ export default function EspaciosScreen() {
 
   const [espacios, setEspacios] = useState<Espacio[]>([]);
 
-  useEffect(() => {
-    obtenerEspacios().then((resultado) => {
-      if (!esError(resultado)) {
-        setEspacios(resultado.datos);
-      }
-    });
-  }, []);
+const [cargando, setCargando] = useState(true);
+const [error, setError] = useState<string | null>(null);
+
+const cargarEspacios = useCallback(() => {
+  setCargando(true);
+  setError(null);
+  obtenerEspacios().then((resultado) => {
+    if (esError(resultado)) {
+      setError(resultado.error.mensaje);
+    } else {
+      setEspacios(resultado.datos);
+    }
+    setCargando(false);
+  });
+}, []);
+
+useEffect(() => {
+  cargarEspacios();
+}, [cargarEspacios]);
 
   const [deportes, setDeportes] = useState<Deporte[]>([]);
 
@@ -81,6 +93,19 @@ export default function EspaciosScreen() {
           </View>
         }
         
+        ListEmptyComponent={
+          cargando ? (
+            <ActivityIndicator color={tema.tint} style={{ marginTop: 40 }} />
+          ) : error ? (
+            <View style={styles.vacio}>
+              <Text style={styles.textoVacio}>{error}</Text>
+              <Boton titulo="Reintentar" variante="secundario" onPress={cargarEspacios} />
+            </View>
+          ) : (
+            <Text style={styles.textoVacio}>No hay espacios para este filtro.</Text>
+          )
+        }
+
         renderItem={({ item: espacio }) => {
           const deporte = deportes.find((d) => d.id === espacio.deporteId);
           return (
@@ -250,4 +275,6 @@ const styles = StyleSheet.create({
   panelFiltros: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 32 },
   tituloFiltros: { fontFamily: 'Inter-Medium', fontSize: 15, marginBottom: 8, marginTop: 12 },
   deporteSuperficie: { fontFamily: 'Inter-Regular', fontSize: 13, opacity: 0.6, marginTop: 2 },
+  vacio: { alignItems: 'center', marginTop: 40, gap: 16 },
+  textoVacio: { fontFamily: 'Inter-Regular', fontSize: 16, opacity: 0.5, textAlign: 'center' },
 });

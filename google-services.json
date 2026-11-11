@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "723042022474",
+    "project_id": "movil-67-a3b77",
+    "storage_bucket": "movil-67-a3b77.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:723042022474:android:4e9ba5f2c2971ee83da2b3",
+        "android_client_info": {
+          "package_name": "ar.edu.grupo67.reservas"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyApC8MXi4GFCOiT5Q9C37LVGpu1Obcc5Ag"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
