@@ -29,6 +29,7 @@
           "apiKey": "AIzaSyDoBhbzoHBl5O7PdmTzgL9SH9o9Givul0w"
         }
       },
+      "googleServicesFile": "./google-services.json",
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO",

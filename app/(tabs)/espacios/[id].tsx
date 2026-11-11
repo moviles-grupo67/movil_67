@@ -111,6 +111,7 @@ export default function DetalleEspacio() {
   // Saca los turnos que ya pasaron.
   const turnos = turnosApi.filter((t) => inicioDeTurno(t.id).getTime() > ahora);
 
+  //Limpia los turnos
   function cambiarDia(delta: number) {
     setDiaOffset((d) => d + delta);
     setTurnoSeleccionado(null);
@@ -192,7 +193,9 @@ export default function DetalleEspacio() {
 
   const esFavorito = sesion?.usuario.espaciosFavoritos.includes(espacio?.id ?? '') ?? false;
 
-  // Si no hay sesión, pide loguearse antes de marcar favorito.
+  
+  // Si no hay sesión, pide loguearse antes de marcar favorito y si hay sesión llama alternarFavorito
+  //Guarda en la api que ese usuario favoriteo el espacio
   function handleFavorito() {
     if (!espacio) return;
     if (!sesion) {
@@ -233,8 +236,8 @@ export default function DetalleEspacio() {
             {medios.length > 0 && (
               <Carousel
                 data={medios}
-                loop={false}
-                progress={progress}
+                loop={false} //hace que no sea infinito el carrousel hasta que llega el ultimo elemento
+                progress={progress} //Esto permite que lo actualiza directo mientra se desliza la imagen
                 style={{ width: anchoMedio, height: 220, borderRadius: 16, marginBottom: 12 }}
                 renderItem={({ item }) =>
                   item.tipo === 'video' ? (
@@ -249,7 +252,7 @@ export default function DetalleEspacio() {
               <Pagination
                 count={medios.length}
                 progress={progress}
-                dotStyle={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#D8C3D1' }}
+                dotStyle={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#D8C3D1' }} // los puntos del carrousel
                 activeDotStyle={{ width: 16, height: 6, borderRadius: 3, backgroundColor: '#A4438C' }}
                 containerStyle={{ gap: 6, marginBottom: 12, justifyContent: 'center' }}
               />
