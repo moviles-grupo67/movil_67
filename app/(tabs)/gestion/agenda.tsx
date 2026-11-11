@@ -101,7 +101,7 @@ export default function AgendaScreen() {
     const telefono = esError(rUsuario) ? '—' : rUsuario.datos.telefono;
     const tardias = esError(rUsuario) ? 0 : rUsuario.datos.cancelacionesTardias;
     const ausencias = esError(rUsuario) ? 0 : rUsuario.datos.ausencias;
-    // Solo se muestra si hay algo para saber.
+
     const antecedentes =
       tardias > 0 || ausencias > 0
         ? `\n⚠ ${tardias} cancelación(es) tardía(s) · ${ausencias} ausencia(s)`
@@ -120,8 +120,9 @@ export default function AgendaScreen() {
     Alert.alert(
       nombre,
       `${nombreEspacio(turno.espacioId)} · ${turno.inicio} a ${turno.fin} hs\n` +
-      `Teléfono: ${telefono}\n` +
-      `${reserva.cantidadPersonas} personas · ${reserva.estado}`,
+        `Teléfono: ${telefono}\n` +
+        `${reserva.cantidadPersonas} personas · ${reserva.estado}` +
+        `${antecedentes}`,
       botones,
     );
   }
