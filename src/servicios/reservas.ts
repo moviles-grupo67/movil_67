@@ -1,10 +1,6 @@
-import { reservas as reservasMock } from '@/src/mocks/reservas';
 import { pedir } from '@/src/servicios/cliente-api';
 import { esError, Respuesta } from '@/src/tipos/api';
 import { Reserva } from '@/src/tipos/reserva';
-import { fechaISO, inicioDeTurno } from '@/src/utils/turnos';
-
-let reservas: Reserva[] = [...reservasMock];
 
 export async function obtenerReservas(_usuarioId: string): Promise<Reserva[]> {
   const [proximas, pasadas] = await Promise.all([
@@ -56,58 +52,6 @@ export async function crearReserva(datos: {
   });
   if (esError(respuesta)) throw new Error(respuesta.error.mensaje);
   return respuesta.datos;
-}
-
-export async function cancelarPorBloqueo(id: string): Promise<void> {
-  reservas = reservas.map((r) =>
-    r.id === id ? { ...r, estado: 'cancelada' } : r,
-  );
-}
-
-export async function registrarIngreso(
-  codigoQr: string,
-  espacioId: string,
-): Promise<Reserva> {
-  const reserva = reservas.find((r) => r.codigoQr === codigoQr);
-
-  if (!reserva) {
-    throw new Error('Ese QR no es de ninguna reserva.');
-  }
-  if (reserva.estado !== 'confirmada') {
-    throw new Error(`Esta reserva ya no es válida (${reserva.estado}).`);
-  }
-  if (reserva.espacioId !== espacioId) {
-    throw new Error('Esta reserva es de otra cancha.');
-  }
-  if (fechaISO(inicioDeTurno(reserva.turnoId)) !== fechaISO(new Date())) {
-    throw new Error('Esta reserva no es de hoy.');
-  }
-
-  const actualizada: Reserva = {
-    ...reserva,
-    estado: 'cumplida',
-    ingresoEn: new Date().toISOString(),
-  };
-  reservas = reservas.map((r) => (r.id === reserva.id ? actualizada : r));
-  return actualizada;
-}
-
-export async function obtenerReservaPorCodigo(
-  codigoQr: string,
-): Promise<Reserva | undefined> {
-  return reservas.find((r) => r.codigoQr === codigoQr);
-}
-
-export async function actualizarReserva(
-  id: string,
-  cambios: Partial<Pick<Reserva, 'estado' | 'ingresoEn'>>,
-): Promise<Reserva | undefined> {
-  const actual = reservas.find((r) => r.id === id);
-  if (!actual) return undefined;
-
-  const actualizada = { ...actual, ...cambios };
-  reservas = reservas.map((r) => (r.id === id ? actualizada : r));
-  return actualizada;
 }
 
 export interface ReservaAfectada {
