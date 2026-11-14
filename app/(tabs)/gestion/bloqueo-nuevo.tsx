@@ -12,7 +12,6 @@ import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Switch } from 'react-native';
 
-// Convierte el Alert (que funciona con callbacks) en algo que se puede "await".
 function confirmar(titulo: string, mensaje: string): Promise<boolean> {
   return new Promise((resolver) => {
     Alert.alert(titulo, mensaje, [

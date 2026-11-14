@@ -16,7 +16,6 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, StyleSheet } from 'react-native';
 
-// El índice coincide con el campo "dia" del tipo: 0 = domingo.
 const DIAS = [
   'Domingo',
   'Lunes',
