@@ -17,6 +17,14 @@ FCAD · UNER.
 | Micaela Giselle Ortiz | Cuenta, ingreso y conexión con la API |
 | Ezequiel Eduardo Sanchez | Espacios, mapa y notificaciones |
 
+## Enlaces
+
+| | |
+|---|---|
+| Diseño en Figma (mockups, logo, tipografía, botones e íconos) | https://www.figma.com/design/v3dhnYBRumf4wkCJdekvdv/Desarrollo-Moviles---Grupo-67?node-id=0-1 |
+| Video: explicación y desarrollo de la app | https://www.youtube.com/watch?v=w6FvLAL-obk |
+| APK para instalar en Android | https://expo.dev/accounts/grupo57/projects/movil_67/builds/e0148ea3-6118-4943-81d8-0c8905ad15fd |
+
 ## API
 
 La app usa la API de la cátedra. Para las notificaciones push hicimos un fork, donde
