@@ -51,7 +51,6 @@ export default function MapaScreen() {
     }
   }, [espacios]);
 
-  // Agrupa los espacios por complejo
   const complejos = Object.values(
     espacios.reduce((acc, espacio) => {
       if (!acc[espacio.complejo]) {
@@ -67,7 +66,6 @@ export default function MapaScreen() {
     }, {} as Record<string, Complejo>)
   );
 
-  // Pide permiso de ubicación y centra el mapa en la posición actual del usuario.
   async function buscarMiUbicacion() {
     const { status } = await Location.requestForegroundPermissionsAsync();
     console.log('Estado del permiso de ubicación:', status);
@@ -98,7 +96,6 @@ export default function MapaScreen() {
     }
   }
 
-  // Agrega la distancia en km una vez que ya sabemos dónde está el usuario.
   function descripcionDe(complejo: Complejo): string {
     const espacios = `${complejo.cantidadEspacios} espacio${complejo.cantidadEspacios > 1 ? 's' : ''}`;
     if (!miUbicacion) return espacios;
@@ -106,12 +103,10 @@ export default function MapaScreen() {
     return `${espacios} · ${km.toFixed(1)} km`;
   }
 
-  // Abre Google Maps con la ruta hasta ese complejo.
   function abrirComoLlegar(complejo: Complejo) {
     Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${complejo.latitud},${complejo.longitud}`);
   }
 
-  // Lleva a la lista de espacios con el filtro de este complejo ya aplicado.
   function irAReservar(complejo: Complejo) {
     router.push({ pathname: '/espacios', params: { complejo: complejo.nombre } });
   }

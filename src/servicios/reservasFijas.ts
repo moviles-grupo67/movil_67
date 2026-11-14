@@ -43,7 +43,6 @@ export async function desactivarReservaFija(
     url: `/fijas/${id}`,
   });
 
-  // DELETE responde 204: no devuelve contenido.
   if (typeof respuesta === 'object' && respuesta !== null) {
     return respuesta;
   }

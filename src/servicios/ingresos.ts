@@ -20,6 +20,5 @@ export async function registrarIngreso(
 
   if (esError(respuesta)) return respuesta;
 
-  // La API devuelve solo la reserva; el espacio ya lo tenemos elegido.
   return { datos: { reserva: respuesta.datos, espacio }, meta: null };
 }

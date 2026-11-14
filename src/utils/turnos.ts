@@ -1,6 +1,4 @@
-//Esta seccion la agregue para poder darle formato a las fechas de hoy hasta 5 dias agregue. Esto se importa en servicios -> reservas
 
-// Esto es para mostrar la fecha en el input de fecha, que es formato ISO
 export function fechaISO(fecha: Date): string {
   const anio = fecha.getFullYear();
   const mes = String(fecha.getMonth() + 1).padStart(2, '0');
@@ -8,7 +6,6 @@ export function fechaISO(fecha: Date): string {
   return `${anio}-${mes}-${dia}`;
 }
 
-// Toma el id y lo que hace es destructurarlo para leerlo
 export function inicioDeTurno(turnoId: string): Date {
   const partes = turnoId.split('-');
   const fecha = partes[partes.length - 2];

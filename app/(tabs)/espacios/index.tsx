@@ -19,18 +19,16 @@ export default function EspaciosScreen() {
   const tema = Colors[useColorScheme() ?? 'light'];
   
   const router = useRouter();
-  // complejo llega como parámetro de ruta cuando se navega desde el mapa apretando el boton de Ver Espacios
+
   const { complejo } = useLocalSearchParams<{ complejo?: string }>();
 
   const [espacios, setEspacios] = useState<Espacio[]>([]);
-  //cargando: true mientras se está pidiendo la lista a la API.
-  // Porque al ser gratuita tarda en cargar la api.
+ 
   const [cargando, setCargando] = useState(true);
 
   const [error, setError] = useState<string | null>(null);
 
-  // Pide los espacios a la API. Está en una función aparte para poder llamarla otra vez desde el botón "Reintentar" sin
-  // repetir el código.
+
   const cargarEspacios = useCallback(() => {
     setCargando(true);
     setError(null);
@@ -44,7 +42,6 @@ export default function EspaciosScreen() {
     });
   }, []);
 
-  // Llama a cargarEspacios una vez, al entrar a la pantalla.
   useEffect(() => {
     cargarEspacios();
   }, [cargarEspacios]);
@@ -61,8 +58,6 @@ export default function EspaciosScreen() {
     });
   }, []);
 
-  // Si la pantalla se crea con ese parámetro ya presente, el filtro arranca
-  // aplicado desde el primer render.
   const [complejoSeleccionado, setComplejoSeleccionado] = useState<string | null>(complejo ?? null);
 
   useEffect(() => {
@@ -86,9 +81,7 @@ export default function EspaciosScreen() {
         data={espaciosFiltrados}
         keyExtractor={(espacio) => espacio.id}
         contentContainerStyle={styles.lista}
-        //Botones
         ListHeaderComponent={
-          // Boton de filtros
           <View style={styles.filaBotones}>
             <TouchableOpacity style={[styles.botonFiltro, { backgroundColor: tema.tint }]} activeOpacity={0.7} onPress={() => setFiltrosVisibles(true)}>
               <Icono nombre="filtro" color="#FFFFFF" size={18} />
@@ -96,14 +89,12 @@ export default function EspaciosScreen() {
                 Filtros{cantidadFiltrosActivos > 0 ? ` (${cantidadFiltrosActivos})` : ''}
               </Text>
             </TouchableOpacity>
-             {/* Boton de Mapa */}
             <TouchableOpacity style={[styles.botonFiltro, { backgroundColor: tema.tint }]} activeOpacity={0.7} onPress={() => router.push('/espacios/mapa')}>
               <Icono nombre="ubicacion" color="#FFFFFF" size={18} />
               <Text style={styles.textoBotonFiltro}>Mapa</Text>
             </TouchableOpacity>
           </View>
         }
-        // Qué se muestra en el lugar de la lista cuando espaciosFiltrados está vacío:
         ListEmptyComponent={
           cargando ? (
             <ActivityIndicator color={tema.tint} style={{ marginTop: 40 }} />
@@ -117,7 +108,6 @@ export default function EspaciosScreen() {
           )
         }
 
-        //Card de cada espacio
         renderItem={({ item: espacio }) => {
           const deporte = deportes.find((d) => d.id === espacio.deporteId);
           return (
@@ -164,7 +154,6 @@ export default function EspaciosScreen() {
           );
         }}
       />
-            {/* Ventana para activar los filtros */}
       <Modal
         visible={filtrosVisibles}
         animationType="slide"

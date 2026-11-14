@@ -60,7 +60,7 @@ export default function ReservasScreen() {
     } else {
       setMisReservas(rReservas.datos);
       setEspacios(rEspacios.datos);
-      guardarReservas(usuarioId, rReservas.datos, rEspacios.datos); // la "foto" para después
+      guardarReservas(usuarioId, rReservas.datos, rEspacios.datos); 
     }
     setCargando(false);
   }, [sesion]);

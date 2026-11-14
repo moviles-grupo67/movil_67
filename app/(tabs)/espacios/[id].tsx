@@ -15,8 +15,8 @@ import { Pressable, FlatList, StyleSheet, Text, Alert, View, useWindowDimensions
 import { Boton } from '@/components/Boton';
 import { Image } from 'expo-image';
 import { useVideoPlayer, VideoView } from 'expo-video';
-import { Carousel, Pagination } from 'react-native-reanimated-carousel';// Libreria Carrousel
-import { useSharedValue } from 'react-native-reanimated'; // Libreria Carrousel
+import { Carousel, Pagination } from 'react-native-reanimated-carousel';
+import { useSharedValue } from 'react-native-reanimated'; 
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
 import { obtenerDeportes } from '@/src/servicios/deportes';
@@ -108,16 +108,14 @@ export default function DetalleEspacio() {
   const fecha = fechaDelOffset(diaOffset);
 
   const ahora = Date.now();
-  // Saca los turnos que ya pasaron.
+
   const turnos = turnosApi.filter((t) => inicioDeTurno(t.id).getTime() > ahora);
 
-  //Limpia los turnos
   function cambiarDia(delta: number) {
     setDiaOffset((d) => d + delta);
     setTurnoSeleccionado(null);
   }
 
-  // Crea la reserva en la API y, si sale bien, programa el recordatorio de 2hs antes
   async function confirmarReserva(turnoId: string, nombreEspacio: string) {
     setReservando(true);
     const rReserva = await crearReserva({ turnoId, cantidadPersonas });
@@ -140,9 +138,7 @@ export default function DetalleEspacio() {
     router.back();
     router.push({ pathname: '/reservas/[id]', params: { id: reserva.id } }, { withAnchor: true });
   }
-  
-  // Si no hay sesión, manda a loguearse antes de reservar. Si faltan menos de 4hs
-  // para el turno, avisa que después no se va a poder cancelar sola.
+
   function handleReservar() {
     if (!turnoSeleccionado || !espacio) return;
 
@@ -185,7 +181,6 @@ export default function DetalleEspacio() {
   }
   const deporte = deportes.find((d) => d.id === espacio.deporteId);
 
-  //Array de Imagenes y videos
   const medios = [
     ...espacio.imagenes.map((url) => ({ tipo: 'imagen' as const, url })),
     ...(espacio.videoUrl ? [{ tipo: 'video' as const, url: espacio.videoUrl }] : []),
@@ -193,9 +188,6 @@ export default function DetalleEspacio() {
 
   const esFavorito = sesion?.usuario.espaciosFavoritos.includes(espacio?.id ?? '') ?? false;
 
-  
-  // Si no hay sesión, pide loguearse antes de marcar favorito y si hay sesión llama alternarFavorito
-  //Guarda en la api que ese usuario favoriteo el espacio
   function handleFavorito() {
     if (!espacio) return;
     if (!sesion) {
@@ -230,14 +222,13 @@ export default function DetalleEspacio() {
         keyExtractor={(turno) => turno.id}
         extraData={turnoSeleccionado}
         contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
-        //Carrousel de imagenes y videos de las canchas
         ListHeaderComponent={
           <>
             {medios.length > 0 && (
               <Carousel
                 data={medios}
-                loop={false} //hace que no sea infinito el carrousel hasta que llega el ultimo elemento
-                progress={progress} //Esto permite que lo actualiza directo mientra se desliza la imagen
+                loop={false}
+                progress={progress} 
                 style={{ width: anchoMedio, height: 220, borderRadius: 16, marginBottom: 12 }}
                 renderItem={({ item }) =>
                   item.tipo === 'video' ? (
@@ -252,7 +243,7 @@ export default function DetalleEspacio() {
               <Pagination
                 count={medios.length}
                 progress={progress}
-                dotStyle={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#D8C3D1' }} // los puntos del carrousel
+                dotStyle={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#D8C3D1' }} 
                 activeDotStyle={{ width: 16, height: 6, borderRadius: 3, backgroundColor: '#A4438C' }}
                 containerStyle={{ gap: 6, marginBottom: 12, justifyContent: 'center' }}
               />

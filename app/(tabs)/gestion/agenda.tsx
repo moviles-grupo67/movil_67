@@ -42,8 +42,6 @@ export default function AgendaScreen() {
   const [cargando, setCargando] = useState(true);
   const [refrescando, setRefrescando] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Cuenta los pedidos: si el usuario cambia de día rápido, solo vale el último.
   const pedido = useRef(0);
 
   async function cargar(esRefresco = false) {

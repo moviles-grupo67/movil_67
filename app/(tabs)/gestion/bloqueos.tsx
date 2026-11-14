@@ -19,7 +19,6 @@ export default function BloqueosScreen() {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Se ejecuta cada vez que la pantalla gana foco (al entrar y al volver).
   useFocusEffect(
     useCallback(() => {
       cargar();
